@@ -25,7 +25,7 @@ canvas{display:block;width:100vw;height:100vh;background:#071522;cursor:crosshai
 </style></head><body>
 <canvas id="game"></canvas>
 <div class="hud left">❤️ HP <b id="hp">100</b><br>⚡ SPEED <b id="speed">0</b> · ALT <b id="alt">1200</b><br>🔫 AMMO <b id="ammo">100</b> · 🚀 MISSILES <b id="missiles">4</b></div>
-<div class="hud right">🏆 SCORE <b id="score">0</b><br><b id="effect">READY</b></div><button id="audioBtn" style="display:block !important;position:fixed !important;top:12px !important;left:50% !important;transform:translateX(-50%) !important;z-index:9999 !important;pointer-events:auto !important;background:#168ce0 !important;color:#fff !important;border:2px solid #fff !important;border-radius:12px !important;padding:10px 18px !important;font:bold 15px Arial !important;box-shadow:0 4px 18px #000 !important">🔊 SOUND ON</button>
+<div class="hud right">🏆 SCORE <b id="score">0</b><br>🪙 COINS <b id="coins">0</b><br><b id="effect">READY</b></div><button id="audioBtn" style="display:block !important;position:fixed !important;top:12px !important;left:50% !important;transform:translateX(-50%) !important;z-index:9999 !important;pointer-events:auto !important;background:#168ce0 !important;color:#fff !important;border:2px solid #fff !important;border-radius:12px !important;padding:10px 18px !important;font:bold 15px Arial !important;box-shadow:0 4px 18px #000 !important">🔊 SOUND ON</button>
 <div class="tip">WASD / ARROWS fly · MOUSE aim · HOLD CLICK fire · M missile · R reload</div>
 <div id="mobileUI">
 <div class="mobileTip">LEFT: MOVE · RIGHT: AIM · FIRE: SHOOT</div>
@@ -35,13 +35,13 @@ canvas{display:block;width:100vw;height:100vh;background:#071522;cursor:crosshai
 <button class="mbtn" id="missileBtn">🚀</button>
 <button class="mbtn" id="reloadBtn">↻</button>
 </div>
-<div id="gameOver"><div class="box"><h1>SHOT DOWN</h1><p>Score: <b id="finalScore">0</b></p><button id="restart">RESTART</button></div></div>
+<div id="gameOver"><div class="box"><h1>SHOT DOWN</h1><p>Score: <b id="finalScore">0</b></p><p>🪙 Coins earned: <b id="earnedCoins">0</b></p><p>Total coins: <b id="totalCoins">0</b></p><button id="restart">RESTART</button></div></div>
 <script>
 (function(){
 "use strict";
 var canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
 var W=0,H=0,dpr=1,stars=[],clouds=[],keys={},mouse={x:0,y:0,down:false},player,enemies=[],bullets=[],powerups=[],particles=[];
-var score=0,spawnTimer=.5,powerTimer=4,fireCooldown=0,dead=false,last=0,shake=0;
+var score=0,coins=Number(localStorage.getItem("airCombatCoins")||0),spawnTimer=.5,powerTimer=4,fireCooldown=0,dead=false,last=0,shake=0;
 var mobile={moveX:0,moveY:0,aimX:0,aimY:0,fire:false,moveId:null,aimId:null};
 
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -81,7 +81,7 @@ for(var pidx=0;pidx<powerups.length;pidx++){var pu=powerups[pidx];pu.life-=dt;pu
 powerups=powerups.filter(function(x){return x.life>0});
 for(var f=0;f<particles.length;f++){var pt=particles[f];pt.x+=pt.vx*dt;pt.y+=pt.vy*dt;pt.vx*=.97;pt.vy*=.97;pt.life-=dt}
 particles=particles.filter(function(x){return x.life>0});
-if(player.hp<=0){dead=true;document.getElementById("finalScore").textContent=score;document.getElementById("gameOver").style.display="grid"}
+if(player.hp<=0 && !dead){dead=true;var earned=Math.max(0,Math.floor(score));coins+=earned;localStorage.setItem("airCombatCoins",String(coins));document.getElementById("finalScore").textContent=score;document.getElementById("earnedCoins").textContent=earned;document.getElementById("totalCoins").textContent=coins;document.getElementById("gameOver").style.display="grid"}
 }
 function drawPlane(q,color,angle){ctx.save();ctx.translate(q.x,q.y);ctx.rotate(angle);ctx.shadowBlur=18;ctx.shadowColor=color;ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(32,0);ctx.lineTo(5,-5);ctx.lineTo(-17,-24);ctx.lineTo(-10,-5);ctx.lineTo(-25,-11);ctx.lineTo(-19,0);ctx.lineTo(-25,11);ctx.lineTo(-10,5);ctx.lineTo(-17,24);ctx.lineTo(5,5);ctx.closePath();ctx.fill();ctx.fillStyle="#bfeaff";ctx.beginPath();ctx.moveTo(9,0);ctx.lineTo(-7,-5);ctx.lineTo(-13,0);ctx.lineTo(-7,5);ctx.closePath();ctx.fill();ctx.restore()}
 function drawCoolBackground(){
@@ -212,7 +212,7 @@ ctx.fillStyle="#000b";ctx.fillRect(player.x-32,player.y-46,64,7);ctx.fillStyle=p
 if(player.shield>0){ctx.strokeStyle="#58dcff";ctx.lineWidth=3;ctx.shadowBlur=15;ctx.shadowColor="#58dcff";ctx.beginPath();ctx.arc(player.x,player.y,43,0,Math.PI*2);ctx.stroke()}
 ctx.restore();
 ctx.strokeStyle="#fff";ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(mouse.x,mouse.y,13,0,Math.PI*2);ctx.moveTo(mouse.x-22,mouse.y);ctx.lineTo(mouse.x-7,mouse.y);ctx.moveTo(mouse.x+7,mouse.y);ctx.lineTo(mouse.x+22,mouse.y);ctx.moveTo(mouse.x,mouse.y-22);ctx.lineTo(mouse.x,mouse.y-7);ctx.moveTo(mouse.x,mouse.y+7);ctx.lineTo(mouse.x,mouse.y+22);ctx.stroke();
-document.getElementById("hp").textContent=Math.max(0,Math.round(player.hp));document.getElementById("speed").textContent=Math.round(Math.sqrt(player.vx*player.vx+player.vy*player.vy));document.getElementById("alt").textContent=Math.round(1200-player.y*.35);document.getElementById("ammo").textContent=player.ammo;document.getElementById("missiles").textContent=player.missiles;document.getElementById("score").textContent=score;
+document.getElementById("hp").textContent=Math.max(0,Math.round(player.hp));document.getElementById("speed").textContent=Math.round(Math.sqrt(player.vx*player.vx+player.vy*player.vy));document.getElementById("alt").textContent=Math.round(1200-player.y*.35);document.getElementById("ammo").textContent=player.ammo;document.getElementById("missiles").textContent=player.missiles;document.getElementById("score").textContent=score;document.getElementById("coins").textContent=coins;
 var fx=[];if(player.rapid>0)fx.push("RAPID "+player.rapid.toFixed(1));if(player.explosive>0)fx.push("EXPLOSIVE "+player.explosive.toFixed(1));if(player.shield>0)fx.push("SHIELD "+player.shield.toFixed(1));document.getElementById("effect").textContent=fx.length?fx.join(" · "):"READY";
 }
 
