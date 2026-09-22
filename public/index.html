@@ -150,59 +150,38 @@ function drawCoolBackground(){
     ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();
   }
 }
-function drawSpaceBackdrop(){
-  // Bright space/planet wallpaper style — kept light enough to see the aircraft and HUD.
-  var g=ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,"#08152e");
-  g.addColorStop(.35,"#123b61");
-  g.addColorStop(.65,"#24789a");
-  g.addColorStop(1,"#07152a");
-  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
-
-  // Bright nebula clouds
-  var n=ctx.createRadialGradient(W*.42,H*.42,10,W*.42,H*.42,W*.65);
-  n.addColorStop(0,"rgba(170,225,255,.42)");
-  n.addColorStop(.35,"rgba(75,170,220,.28)");
-  n.addColorStop(1,"rgba(10,30,65,0)");
-  ctx.fillStyle=n;ctx.fillRect(0,0,W,H);
-
-  var n2=ctx.createRadialGradient(W*.78,H*.28,5,W*.78,H*.28,W*.42);
-  n2.addColorStop(0,"rgba(210,145,235,.28)");
-  n2.addColorStop(.4,"rgba(100,90,190,.14)");
-  n2.addColorStop(1,"rgba(0,0,0,0)");
-  ctx.fillStyle=n2;ctx.fillRect(0,0,W,H);
-
-  // Large visible planet
-  var px=W*.84,py=H*.28,pr=Math.min(W,H)*.13;
-  var pg=ctx.createRadialGradient(px-pr*.38,py-pr*.45,pr*.05,px,py,pr);
-  pg.addColorStop(0,"#d9edff");
-  pg.addColorStop(.25,"#6c9bc4");
-  pg.addColorStop(.65,"#315878");
-  pg.addColorStop(1,"#14253e");
-  ctx.fillStyle=pg;ctx.shadowBlur=40;ctx.shadowColor="rgba(140,220,255,.5)";
-  ctx.beginPath();ctx.arc(px,py,pr,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
-
-  // Planet rings
-  ctx.strokeStyle="rgba(220,245,255,.45)";ctx.lineWidth=Math.max(2,W*.0015);
-  ctx.beginPath();ctx.ellipse(px,py+pr*.05,pr*1.55,pr*.34,-.16,0,Math.PI*2);ctx.stroke();
-
-  // Stars with stronger visibility
-  for(var i=0;i<stars.length;i++){
-    var s=stars[i];ctx.globalAlpha=Math.min(1,s.a+.25);
-    ctx.fillStyle="#ffffff";
-    ctx.beginPath();ctx.arc(s.x,s.y,Math.max(1,s.r),0,Math.PI*2);ctx.fill();
-  }
-  ctx.globalAlpha=1;
-
-  // Soft horizon glow
-  var hz=ctx.createLinearGradient(0,H*.55,0,H*.9);
-  hz.addColorStop(0,"rgba(100,225,255,.18)");
-  hz.addColorStop(1,"rgba(0,0,0,0)");
-  ctx.fillStyle=hz;ctx.fillRect(0,H*.5,W,H*.5);
-}
-function draw(){
+function draw(){\n  drawCoolBackground();
 ctx.save();if(shake)ctx.translate((Math.random()-.5)*8,(Math.random()-.5)*8);
-drawSpaceBackdrop();
+ctx.fillStyle="#071522";ctx.fillRect(0,0,W,H);
+var grad=ctx.createRadialGradient(W/2,H/2,60,W/2,H/2,Math.max(W,H)*.8);grad.addColorStop(0,"#163550");grad.addColorStop(1,"#06111d");ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+var bgTime=performance.now()/1000;
+for(var si=0;si<stars.length;si++){
+  var st=stars[si],sy=(st.y+bgTime*st.s)%H;
+  ctx.globalAlpha=st.a*(.65+.35*Math.sin(bgTime*2+si));
+  ctx.fillStyle="#dff5ff";ctx.beginPath();ctx.arc(st.x,sy,st.r,0,Math.PI*2);ctx.fill();
+}
+ctx.globalAlpha=1;
+for(var ci=0;ci<clouds.length;ci++){
+  var cl=clouds[ci],cx=((cl.x+bgTime*cl.s)%(W+cl.w))-cl.w/2;
+  var cg=ctx.createRadialGradient(cx,cl.y,2,cx,cl.y,cl.w/2);
+  cg.addColorStop(0,"#7db7d522");cg.addColorStop(1,"#7db7d500");
+  ctx.fillStyle=cg;ctx.beginPath();ctx.ellipse(cx,cl.y,cl.w/2,cl.h,0,0,Math.PI*2);ctx.fill();
+}
+
+// cinematic sky layers
+var horizon=H*.62;
+var hg=ctx.createLinearGradient(0,horizon-180,0,H);
+hg.addColorStop(0,"#1c6b92aa");hg.addColorStop(.35,"#0b405faa");hg.addColorStop(1,"#020913cc");
+ctx.fillStyle=hg;ctx.fillRect(0,horizon-180,W,H-horizon+180);
+for(var ray=0;ray<7;ray++){
+  ctx.globalAlpha=.035;
+  ctx.fillStyle="#68d9ff";
+  ctx.beginPath();ctx.moveTo(W*.5,horizon-20);ctx.lineTo(W*(.05+ray*.15),0);ctx.lineTo(W*(.12+ray*.15),0);ctx.closePath();ctx.fill();
+}
+ctx.globalAlpha=1;
+ctx.strokeStyle="#5bd8ff28";ctx.lineWidth=1;for(var gy=horizon;gy<H;gy+=45){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke()}
+ctx.strokeStyle="#ffffff12";
+ctx.strokeStyle="#ffffff12";for(var x=0;x<W;x+=70){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(var y=0;y<H;y+=70){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
 for(var i=0;i<enemies.length;i++){var e=enemies[i];ctx.fillStyle="#0009";ctx.fillRect(e.x-25,e.y-38,50,6);ctx.fillStyle="#ff5555";ctx.fillRect(e.x-25,e.y-38,50*clamp(e.hp/e.maxHp,0,1),6);drawPlane(e,"#e33",e.angle)}
 for(var pidx=0;pidx<powerups.length;pidx++){var pu=powerups[pidx],col=pu.type==="REPAIR"?"#35e27a":pu.type==="RAPID"?"#ffd34d":pu.type==="EXPLOSIVE"?"#ff7048":pu.type==="MISSILES"?"#c47dff":"#58dcff";ctx.save();ctx.translate(pu.x,pu.y);ctx.rotate(pu.spin);ctx.shadowBlur=22;ctx.shadowColor=col;ctx.strokeStyle=col;ctx.lineWidth=3;ctx.strokeRect(-16,-16,32,32);ctx.fillStyle=col;ctx.font="bold 17px Arial";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(pu.type==="REPAIR"?"+":pu.type==="RAPID"?"⚡":pu.type==="EXPLOSIVE"?"✦":pu.type==="MISSILES"?"🚀":"◉",0,0);ctx.restore()}
 for(var b=0;b<bullets.length;b++){var bl=bullets[b];ctx.save();ctx.fillStyle=bl.missile?"#ff8a20":"#fff";ctx.shadowBlur=12;ctx.shadowColor=ctx.fillStyle;ctx.beginPath();ctx.arc(bl.x,bl.y,bl.missile?5:3,0,Math.PI*2);ctx.fill();ctx.restore()}
