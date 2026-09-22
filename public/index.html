@@ -2,12 +2,12 @@
 <html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Air Combat</title>
 <style>
 html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:#061522;color:#fff;font:14px Arial,sans-serif}
-canvas{display:block;width:100vw;height:100vh;background:#071522;cursor:crosshair;touch-action:none}
+canvas{display:block;width:100vw;height:100vh;background:#071522;cursor:crosshair;touch-action:none;-webkit-tap-highlight-color:transparent}
 .hud{position:fixed;top:12px;padding:10px 14px;background:#061321e8;border:1px solid #315b78;border-radius:12px;line-height:1.65;z-index:5;pointer-events:none}
 .left{left:12px}.right{right:12px;text-align:right}.tip{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:5;white-space:nowrap;text-shadow:0 2px 5px #000}
 #gameOver{position:fixed;inset:0;display:none;place-items:center;background:#000b;z-index:10}.box{background:#071522;border:1px solid #46708b;border-radius:18px;padding:32px;text-align:center}button{background:#168ce0;color:white;border:0;border-radius:10px;padding:12px 26px;font-weight:bold;cursor:pointer}
-#mobileUI{display:none;position:fixed;inset:0;z-index:50;pointer-events:none;touch-action:none}
-html.touch-device #mobileUI{display:block}
+#mobileUI{display:none;position:fixed;inset:0;z-index:50;pointer-events:none;touch-action:none;-webkit-user-select:none;user-select:none}
+
 .stick{position:absolute;width:118px;height:118px;border:2px solid #ffffff55;border-radius:50%;background:#ffffff12;box-shadow:0 0 20px #0008}
 .stick .knob{position:absolute;width:48px;height:48px;left:33px;top:33px;border-radius:50%;background:#ffffff35;border:2px solid #fff8;box-sizing:border-box}
 #moveStick{left:18px;bottom:30px}#aimStick{right:18px;bottom:30px}
@@ -15,8 +15,9 @@ html.touch-device #mobileUI{display:block}
 #fireBtn{right:145px;bottom:34px;width:82px;height:82px;font-size:18px;background:#b52a2acc}
 #missileBtn{right:28px;bottom:170px;width:62px;height:62px}
 #reloadBtn{right:102px;bottom:172px;width:62px;height:62px}
+@media (max-width:600px){#moveStick{left:12px;bottom:18px}#aimStick{right:12px;bottom:18px}.stick{width:108px;height:108px}.stick .knob{width:44px;height:44px;left:30px;top:30px}#fireBtn{right:128px;bottom:22px;width:76px;height:76px}#missileBtn{right:18px;bottom:142px;width:56px;height:56px}#reloadBtn{right:84px;bottom:142px;width:56px;height:56px}.mobileTip{top:64px;font-size:11px}.hud{top:8px}.right{top:62px}}
 .mobileTip{display:none;position:absolute;left:50%;top:86px;transform:translateX(-50%);background:#061321cc;border:1px solid #315b78;border-radius:10px;padding:7px 10px;white-space:nowrap;font-size:12px}
-@media (pointer:coarse), (max-width:900px){
+@media (pointer:coarse), (max-width:1100px){
 .tip{display:none}.hud{font-size:12px;padding:7px 9px}.right{top:72px}
 #mobileUI{display:block}.mobileTip{display:block}
 #gameOver{z-index:100}
@@ -121,8 +122,8 @@ as.addEventListener("pointermove",function(e){if(e.pointerId===mobile.aimId){e.p
 as.addEventListener("pointerup",function(e){if(e.pointerId===mobile.aimId)releaseAim()});
 as.addEventListener("pointercancel",function(e){if(e.pointerId===mobile.aimId)releaseAim()});
 var fire=document.getElementById("fireBtn");
-fire.addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();mobile.fire=true});
-fire.addEventListener("pointerup",function(e){e.preventDefault();mobile.fire=false});
+fire.addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();mobile.fire=true;try{fire.setPointerCapture(e.pointerId)}catch(_){}});
+fire.addEventListener("pointerup",function(e){e.preventDefault();e.stopPropagation();mobile.fire=false});
 fire.addEventListener("pointercancel",function(){mobile.fire=false});
 document.getElementById("missileBtn").addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();missile()});
 document.getElementById("reloadBtn").addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();if(player)player.ammo=100});
