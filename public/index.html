@@ -132,10 +132,12 @@ function sfxShoot(){tone(210,.055,"sawtooth",.07);tone(95,.09,"square",.035)}
 function sfxExplosion(){
   if(!initAudio())return;
   var t=audioCtx.currentTime;
-  noise(.55,.48,900);
-  tone(75,.42,"sine",.20,t);
-  tone(48,.55,"sawtooth",.10,t+.025);
-  tone(130,.12,"square",.08,t+.02);
+  // Big arcade-style BOOM: impact crack + deep sub bass + rumble
+  tone(120,.10,"square",.28,t);
+  tone(62,.48,"sine",.42,t+.015);
+  tone(38,.65,"sine",.32,t+.035);
+  noise(.65,.55,700);
+  noise(.18,.28,2600);
 }
 function sfxMissile(){tone(85,.16,"sawtooth",.13);tone(300,.28,"sawtooth",.06)}
 function sfxPickup(){tone(520,.09,"sine",.10);tone(700,.12,"sine",.08);tone(900,.16,"sine",.06)}
@@ -145,8 +147,8 @@ function startMusic(){
   if(!initAudio())return;
   if(musicTimer)return;
   musicOn=true;
-  var bass=[55,55,65.41,49,55,73.42,65.41,49];
-  var lead=[220,261.63,329.63,293.66,246.94,329.63,392,329.63];
+  var bass=[55,55,73.42,65.41,49,55,82.41,73.42];
+  var lead=[220,277.18,329.63,392,329.63,246.94,293.66,440];
   var i=0;
   function beat(){
     if(!musicOn)return;
@@ -156,7 +158,7 @@ function startMusic(){
     if(i%2===0)tone(lead[(i+3)%lead.length]*2,.08,"square",.012,t+.16,musicGain);
     i++;
   }
-  beat();musicTimer=setInterval(beat,320);
+  beat();musicTimer=setInterval(beat,240);
 }
 function stopMusic(){
   musicOn=false;
@@ -169,7 +171,7 @@ function toggleAudio(){
   if(musicOn){
     stopMusic();
     if(sfxGain)sfxGain.gain.setTargetAtTime(0,audioCtx.currentTime,.03);
-    btn.textContent="🔇 SOUND OFF";
+    btn.textContent="🔇 SOUND OFF";btn.style.background="#555 !important";
   }else{
     if(sfxGain)sfxGain.gain.setTargetAtTime(.38,audioCtx.currentTime,.03);
     if(musicGain)musicGain.gain.setTargetAtTime(.10,audioCtx.currentTime,.03);
