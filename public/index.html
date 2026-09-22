@@ -85,68 +85,69 @@ if(player.hp<=0){dead=true;document.getElementById("finalScore").textContent=sco
 }
 function drawPlane(q,color,angle){ctx.save();ctx.translate(q.x,q.y);ctx.rotate(angle);ctx.shadowBlur=18;ctx.shadowColor=color;ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(32,0);ctx.lineTo(5,-5);ctx.lineTo(-17,-24);ctx.lineTo(-10,-5);ctx.lineTo(-25,-11);ctx.lineTo(-19,0);ctx.lineTo(-25,11);ctx.lineTo(-10,5);ctx.lineTo(-17,24);ctx.lineTo(5,5);ctx.closePath();ctx.fill();ctx.fillStyle="#bfeaff";ctx.beginPath();ctx.moveTo(9,0);ctx.lineTo(-7,-5);ctx.lineTo(-13,0);ctx.lineTo(-7,5);ctx.closePath();ctx.fill();ctx.restore()}
 function drawCoolBackground(){
-  var horizon=H*.64;
+  var horizon=H*.62;
+
+  // Realistic high-altitude atmosphere
   var sky=ctx.createLinearGradient(0,0,0,H);
-  sky.addColorStop(0,"#020817");
-  sky.addColorStop(.35,"#0b2440");
-  sky.addColorStop(.64,"#155a78");
-  sky.addColorStop(1,"#03070d");
+  sky.addColorStop(0,"#071321");
+  sky.addColorStop(.28,"#12324d");
+  sky.addColorStop(.55,"#2d6680");
+  sky.addColorStop(.72,"#87aeb5");
+  sky.addColorStop(1,"#17242b");
   ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
 
-  var glow=ctx.createRadialGradient(W*.52,horizon,10,W*.52,horizon,W*.72);
-  glow.addColorStop(0,"rgba(120,220,255,.32)");
-  glow.addColorStop(.35,"rgba(40,130,180,.12)");
-  glow.addColorStop(1,"rgba(0,0,0,0)");
-  ctx.fillStyle=glow;ctx.fillRect(0,0,W,H);
+  // Atmospheric sunlight
+  var sunX=W*.76,sunY=H*.19,sunR=Math.min(W,H)*.045;
+  var sg=ctx.createRadialGradient(sunX,sunY,2,sunX,sunY,sunR*7);
+  sg.addColorStop(0,"rgba(255,244,205,.72)");
+  sg.addColorStop(.12,"rgba(255,220,150,.34)");
+  sg.addColorStop(.45,"rgba(255,190,100,.10)");
+  sg.addColorStop(1,"rgba(255,180,80,0)");
+  ctx.fillStyle=sg;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="rgba(255,245,210,.9)";ctx.shadowBlur=35;ctx.shadowColor="rgba(255,220,150,.8)";
+  ctx.beginPath();ctx.arc(sunX,sunY,sunR,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
 
-  // distant mountains
-  ctx.fillStyle="rgba(3,12,23,.78)";
-  ctx.beginPath();ctx.moveTo(0,horizon+35);
-  for(var m=0;m<=W+160;m+=160){
-    ctx.lineTo(m,horizon-25-Math.sin(m*.011)*35);
-    ctx.lineTo(m+80,horizon+10);
+  // Distant terrain / mountains
+  ctx.fillStyle="rgba(20,39,48,.68)";
+  ctx.beginPath();ctx.moveTo(0,horizon+50);
+  for(var x=0;x<=W+120;x+=120){
+    ctx.lineTo(x,horizon-20-Math.sin(x*.008)*28-Math.sin(x*.021)*12);
+    ctx.lineTo(x+60,horizon+22);
   }
   ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();ctx.fill();
 
-  // sun/horizon glow
-  ctx.fillStyle="rgba(170,235,255,.75)";
-  ctx.shadowBlur=35;ctx.shadowColor="rgba(100,210,255,.8)";
-  ctx.beginPath();ctx.arc(W*.52,horizon,5,0,Math.PI*2);ctx.fill();
-  ctx.shadowBlur=0;
-
-  // light rays
-  for(var r=0;r<8;r++){
-    var x=W*(.18+r*.095);
-    ctx.fillStyle="rgba(120,220,255,.045)";
-    ctx.beginPath();ctx.moveTo(W*.52,horizon);ctx.lineTo(x,0);ctx.lineTo(x+W*.07,0);ctx.closePath();ctx.fill();
+  // Volumetric clouds
+  for(var j=0;j<clouds.length;j++){
+    var cl=clouds[j];
+    var cx=((cl.x+performance.now()/1000*cl.s)%(W+cl.w))-cl.w/2;
+    var cg=ctx.createRadialGradient(cx,cl.y,5,cx,cl.y,cl.w*.62);
+    cg.addColorStop(0,"rgba(245,250,250,.22)");
+    cg.addColorStop(.35,"rgba(225,240,244,.12)");
+    cg.addColorStop(1,"rgba(210,230,235,0)");
+    ctx.fillStyle=cg;
+    ctx.beginPath();ctx.ellipse(cx,cl.y,cl.w*.62,cl.h,0,0,Math.PI*2);ctx.fill();
   }
 
-  // stars
+  // Subtle distant haze
+  var haze=ctx.createLinearGradient(0,horizon-80,0,horizon+100);
+  haze.addColorStop(0,"rgba(180,225,230,0)");
+  haze.addColorStop(.5,"rgba(220,240,235,.18)");
+  haze.addColorStop(1,"rgba(70,120,130,0)");
+  ctx.fillStyle=haze;ctx.fillRect(0,horizon-100,W,220);
+
+  // Fine stars, visible mostly in the upper atmosphere
   for(var i=0;i<stars.length;i++){
-    var s=stars[i];
-    ctx.globalAlpha=s.a;
-    ctx.fillStyle="#d9f4ff";
-    ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();
+    var s=stars[i];ctx.globalAlpha=s.a*.45;
+    ctx.fillStyle="#e8f7ff";ctx.beginPath();ctx.arc(s.x,s.y,s.r*.65,0,Math.PI*2);ctx.fill();
   }
   ctx.globalAlpha=1;
 
-  // clouds
-  for(var j=0;j<clouds.length;j++){
-    var cl=clouds[j];
-    ctx.fillStyle="rgba(190,225,240,"+(cl.a||.08)+")";
-    ctx.beginPath();
-    ctx.ellipse(cl.x,cl.y,cl.w*.55,cl.h*.5,0,0,Math.PI*2);
-    ctx.ellipse(cl.x-cl.w*.25,cl.y+4,cl.w*.32,cl.h*.38,0,0,Math.PI*2);
-    ctx.ellipse(cl.x+cl.w*.24,cl.y+2,cl.w*.34,cl.h*.42,0,0,Math.PI*2);
-    ctx.fill();
+  // Perspective flight lines near the horizon
+  ctx.strokeStyle="rgba(180,235,245,.08)";ctx.lineWidth=1;
+  for(var gx=-W;gx<W*2;gx+=80){
+    ctx.beginPath();ctx.moveTo(W*.5+(gx-W*.5)*.10,horizon);ctx.lineTo(gx,H);ctx.stroke();
   }
-
-  // flight-level grid
-  ctx.strokeStyle="rgba(80,190,230,.10)";ctx.lineWidth=1;
-  for(var gx=-W;gx<W*2;gx+=70){
-    ctx.beginPath();ctx.moveTo(W*.5+(gx-W*.5)*.12,horizon);ctx.lineTo(gx,H);ctx.stroke();
-  }
-  for(var gy=horizon;gy<H;gy+=34+(gy-horizon)*.08){
+  for(var gy=horizon;gy<H;gy+=38+(gy-horizon)*.09){
     ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();
   }
 }
@@ -269,7 +270,7 @@ function toggleAudio(){
   if(musicOn){
     stopMusic();
     if(sfxGain)sfxGain.gain.setTargetAtTime(0,audioCtx.currentTime,.03);
-    btn.textContent="🔇 SOUND OFF";btn.style.background="#555 !important";
+    btn.textContent="🔇 SOUND OFF";btn.style.background="#555";
   }else{
     if(sfxGain)sfxGain.gain.setTargetAtTime(.38,audioCtx.currentTime,.03);
     if(musicGain)musicGain.gain.setTargetAtTime(.35,audioCtx.currentTime,.03);
