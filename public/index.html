@@ -101,7 +101,19 @@ for(var ci=0;ci<clouds.length;ci++){
   cg.addColorStop(0,"#7db7d522");cg.addColorStop(1,"#7db7d500");
   ctx.fillStyle=cg;ctx.beginPath();ctx.ellipse(cx,cl.y,cl.w/2,cl.h,0,0,Math.PI*2);ctx.fill();
 }
-ctx.strokeStyle="#5bd8ff12";ctx.lineWidth=1;for(var gy=H*.58;gy<H;gy+=55){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke()}
+
+// cinematic sky layers
+var horizon=H*.62;
+var hg=ctx.createLinearGradient(0,horizon-180,0,H);
+hg.addColorStop(0,"#1c6b92aa");hg.addColorStop(.35,"#0b405faa");hg.addColorStop(1,"#020913cc");
+ctx.fillStyle=hg;ctx.fillRect(0,horizon-180,W,H-horizon+180);
+for(var ray=0;ray<7;ray++){
+  ctx.globalAlpha=.035;
+  ctx.fillStyle="#68d9ff";
+  ctx.beginPath();ctx.moveTo(W*.5,horizon-20);ctx.lineTo(W*(.05+ray*.15),0);ctx.lineTo(W*(.12+ray*.15),0);ctx.closePath();ctx.fill();
+}
+ctx.globalAlpha=1;
+ctx.strokeStyle="#5bd8ff28";ctx.lineWidth=1;for(var gy=horizon;gy<H;gy+=45){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke()}
 ctx.strokeStyle="#ffffff12";
 ctx.strokeStyle="#ffffff12";for(var x=0;x<W;x+=70){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(var y=0;y<H;y+=70){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
 for(var i=0;i<enemies.length;i++){var e=enemies[i];ctx.fillStyle="#0009";ctx.fillRect(e.x-25,e.y-38,50,6);ctx.fillStyle="#ff5555";ctx.fillRect(e.x-25,e.y-38,50*clamp(e.hp/e.maxHp,0,1),6);drawPlane(e,"#e33",e.angle)}
@@ -125,7 +137,7 @@ function initAudio(){
     var AC=window.AudioContext||window.webkitAudioContext;
     if(!AC)return false;
     audioCtx=new AC();
-    musicGain=audioCtx.createGain();musicGain.gain.value=.16;musicGain.connect(audioCtx.destination);
+    musicGain=audioCtx.createGain();musicGain.gain.value=.24;musicGain.connect(audioCtx.destination);
     sfxGain=audioCtx.createGain();sfxGain.gain.value=.38;sfxGain.connect(audioCtx.destination);
   }
   if(audioCtx.state==="suspended")audioCtx.resume();
@@ -194,7 +206,7 @@ function toggleAudio(){
     btn.textContent="🔇 SOUND OFF";btn.style.background="#555 !important";
   }else{
     if(sfxGain)sfxGain.gain.setTargetAtTime(.38,audioCtx.currentTime,.03);
-    if(musicGain)musicGain.gain.setTargetAtTime(.16,audioCtx.currentTime,.03);
+    if(musicGain)musicGain.gain.setTargetAtTime(.24,audioCtx.currentTime,.03);
     startMusic();
     btn.textContent="🔊 SOUND ON";
   }
@@ -202,9 +214,7 @@ function toggleAudio(){
 document.getElementById("audioBtn").addEventListener("click",function(e){
   e.preventDefault();e.stopPropagation();toggleAudio();
 });
-document.getElementById("audioBtn").addEventListener("touchend",function(e){
-  e.preventDefault();e.stopPropagation();toggleAudio();
-},{passive:false});
+
 function setupMobile(){
 var ms=document.getElementById("moveStick"),as=document.getElementById("aimStick");
 var mk=ms.querySelector(".knob"),ak=as.querySelector(".knob");
@@ -282,6 +292,9 @@ function fireOff(e){e.preventDefault();e.stopPropagation();mobile.fire=false}
 ["pointerup","pointercancel","touchend","touchcancel"].forEach(function(t){fire.addEventListener(t,fireOff,{passive:false})});
 document.getElementById("missileBtn").addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();missile()},{passive:false});
 document.getElementById("reloadBtn").addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();if(player){player.ammo=100;sfxReload()}},{passive:false});
+window.addEventListener("pointerdown",function(e){
+  if(e.target.id!=="audioBtn" && !musicOn){startMusic();var b=document.getElementById("audioBtn");if(b)b.textContent="🔊 SOUND ON";}
+},{passive:true});
 window.addEventListener("blur",function(){
   moveTouch=null;aimTouch=null;mobile.moveX=0;mobile.moveY=0;mobile.aimX=0;mobile.aimY=0;mobile.fire=false;
   mk.style.transform="translate(0,0)";ak.style.transform="translate(0,0)";
