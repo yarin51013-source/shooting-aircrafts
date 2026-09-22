@@ -25,7 +25,7 @@ canvas{display:block;width:100vw;height:100vh;background:#071522;cursor:crosshai
 </style></head><body>
 <canvas id="game"></canvas>
 <div class="hud left">❤️ HP <b id="hp">100</b><br>⚡ SPEED <b id="speed">0</b> · ALT <b id="alt">1200</b><br>🔫 AMMO <b id="ammo">100</b> · 🚀 MISSILES <b id="missiles">4</b></div>
-<div class="hud right">🏆 SCORE <b id="score">0</b><br>🪙 COINS <b id="coins">0</b><br><b id="effect">READY</b></div><button id="audioBtn" style="display:block !important;position:fixed !important;top:12px !important;left:50% !important;transform:translateX(-50%) !important;z-index:9999 !important;pointer-events:auto !important;background:#168ce0 !important;color:#fff !important;border:2px solid #fff !important;border-radius:12px !important;padding:10px 18px !important;font:bold 15px Arial !important;box-shadow:0 4px 18px #000 !important">🔊 SOUND ON</button>
+<div class="hud right">🏆 SCORE <b id="score">0</b><br>🪙 TOTAL COINS <b id="coins">0</b><br><b id="effect">READY</b></div><button id="audioBtn" style="display:block !important;position:fixed !important;top:12px !important;left:50% !important;transform:translateX(-50%) !important;z-index:9999 !important;pointer-events:auto !important;background:#168ce0 !important;color:#fff !important;border:2px solid #fff !important;border-radius:12px !important;padding:10px 18px !important;font:bold 15px Arial !important;box-shadow:0 4px 18px #000 !important">🔊 SOUND ON</button>
 <div class="tip">WASD / ARROWS fly · MOUSE aim · HOLD CLICK fire · M missile · R reload</div>
 <div id="mobileUI">
 <div class="mobileTip">LEFT: MOVE · RIGHT: AIM · FIRE: SHOOT</div>
@@ -35,13 +35,13 @@ canvas{display:block;width:100vw;height:100vh;background:#071522;cursor:crosshai
 <button class="mbtn" id="missileBtn">🚀</button>
 <button class="mbtn" id="reloadBtn">↻</button>
 </div>
-<div id="gameOver"><div class="box"><h1>SHOT DOWN</h1><p>Score: <b id="finalScore">0</b></p><p>🪙 Coins earned: <b id="earnedCoins">0</b></p><p>Total coins: <b id="totalCoins">0</b></p><button id="restart">RESTART</button></div></div>
+<div id="gameOver"><div class="box"><h1>SHOT DOWN</h1><p>Score: <b id="finalScore">0</b></p><p>🪙 Coins earned: <b id="earnedCoins">0</b></p><p>🪙 Total coins from all rounds: <b id="totalCoins">0</b></p><button id="restart">RESTART</button></div></div>
 <script>
 (function(){
 "use strict";
 var canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
 var W=0,H=0,dpr=1,stars=[],clouds=[],keys={},mouse={x:0,y:0,down:false},player,enemies=[],bullets=[],powerups=[],particles=[];
-var score=0,coins=Number(localStorage.getItem("airCombatCoins")||0),spawnTimer=.5,powerTimer=4,fireCooldown=0,dead=false,last=0,shake=0;
+var score=0;\nvar coins=0;\ntry{coins=Math.max(0,parseInt(localStorage.getItem("airCombatCoins")||"0",10)||0)}catch(e){coins=0}\nvar spawnTimer=.5,powerTimer=4,fireCooldown=0,dead=false,last=0,shake=0;
 var mobile={moveX:0,moveY:0,aimX:0,aimY:0,fire:false,moveId:null,aimId:null};
 
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -52,7 +52,7 @@ for(var i=0;i<90;i++)stars.push({x:Math.random()*W,y:Math.random()*H*.8,r:.5+Mat
 for(var j=0;j<9;j++)clouds.push({x:Math.random()*W,y:80+Math.random()*H*.7,w:90+Math.random()*180,h:25+Math.random()*45,s:8+Math.random()*18,a:.06+Math.random()*.09});
 }
 function resize(){W=window.innerWidth;H=window.innerHeight;dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.max(1,Math.floor(W*dpr));canvas.height=Math.max(1,Math.floor(H*dpr));ctx.setTransform(dpr,0,0,dpr,0,0);initBackground();if(mouse.x===0)mouse.x=W/2;if(mouse.y===0)mouse.y=H/2}
-function reset(){initBackground();player={x:W/2,y:H/2,vx:0,vy:0,angle:0,hp:100,ammo:100,missiles:4,rapid:0,explosive:0,shield:0};enemies=[];bullets=[];powerups=[];particles=[];score=0;spawnTimer=.5;powerTimer=4;fireCooldown=0;dead=false;shake=0;document.getElementById("gameOver").style.display="none"}
+function reset(){\n  try{coins=Math.max(0,parseInt(localStorage.getItem("airCombatCoins")||String(coins),10)||0)}catch(e){}\n  var coinHud=document.getElementById("coins");if(coinHud)coinHud.textContent=coins;\n  initBackground();player={x:W/2,y:H/2,vx:0,vy:0,angle:0,hp:100,ammo:100,missiles:4,rapid:0,explosive:0,shield:0};enemies=[];bullets=[];powerups=[];particles=[];score=0;spawnTimer=.5;powerTimer=4;fireCooldown=0;dead=false;shake=0;document.getElementById("gameOver").style.display="none"}
 function spawnEnemy(){var side=Math.floor(Math.random()*4),x,y;if(side===0){x=-70;y=Math.random()*H}else if(side===1){x=W+70;y=Math.random()*H}else if(side===2){x=Math.random()*W;y=-70}else{x=Math.random()*W;y=H+70}enemies.push({x:x,y:y,hp:60,maxHp:60,angle:0,speed:55+Math.random()*35,shot:1+Math.random()*2})}
 function spawnPower(){var types=["REPAIR","RAPID","EXPLOSIVE","MISSILES","SHIELD"];powerups.push({x:80+Math.random()*Math.max(80,W-160),y:90+Math.random()*Math.max(80,H-180),type:types[Math.floor(Math.random()*types.length)],life:15,spin:0})}
 function particlesAt(x,y,n,color){for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,s=40+Math.random()*180;particles.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:.3+Math.random()*.6,color:color})}}
@@ -81,7 +81,7 @@ for(var pidx=0;pidx<powerups.length;pidx++){var pu=powerups[pidx];pu.life-=dt;pu
 powerups=powerups.filter(function(x){return x.life>0});
 for(var f=0;f<particles.length;f++){var pt=particles[f];pt.x+=pt.vx*dt;pt.y+=pt.vy*dt;pt.vx*=.97;pt.vy*=.97;pt.life-=dt}
 particles=particles.filter(function(x){return x.life>0});
-if(player.hp<=0 && !dead){dead=true;var earned=Math.max(0,Math.floor(score));coins+=earned;localStorage.setItem("airCombatCoins",String(coins));document.getElementById("finalScore").textContent=score;document.getElementById("earnedCoins").textContent=earned;document.getElementById("totalCoins").textContent=coins;document.getElementById("gameOver").style.display="grid"}
+if(player.hp<=0 && !dead){dead=true;var earned=Math.max(0,Math.floor(score));coins+=earned;try{localStorage.setItem("airCombatCoins",String(coins))}catch(e){}document.getElementById("finalScore").textContent=score;document.getElementById("earnedCoins").textContent=earned;document.getElementById("totalCoins").textContent=coins;document.getElementById("gameOver").style.display="grid"}
 }
 function drawPlane(q,color,angle){ctx.save();ctx.translate(q.x,q.y);ctx.rotate(angle);ctx.shadowBlur=18;ctx.shadowColor=color;ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(32,0);ctx.lineTo(5,-5);ctx.lineTo(-17,-24);ctx.lineTo(-10,-5);ctx.lineTo(-25,-11);ctx.lineTo(-19,0);ctx.lineTo(-25,11);ctx.lineTo(-10,5);ctx.lineTo(-17,24);ctx.lineTo(5,5);ctx.closePath();ctx.fill();ctx.fillStyle="#bfeaff";ctx.beginPath();ctx.moveTo(9,0);ctx.lineTo(-7,-5);ctx.lineTo(-13,0);ctx.lineTo(-7,5);ctx.closePath();ctx.fill();ctx.restore()}
 function drawCoolBackground(){
