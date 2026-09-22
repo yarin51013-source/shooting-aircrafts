@@ -99,37 +99,104 @@ var fx=[];if(player.rapid>0)fx.push("RAPID "+player.rapid.toFixed(1));if(player.
 
 function setupMobile(){
 var ms=document.getElementById("moveStick"),as=document.getElementById("aimStick");
-var mk=ms.querySelector(".knob"),ak=as.querySelector(".knob"),R=59;
-function setStick(e,el,knob,isAim){
-var r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
-var dx=e.clientX-cx,dy=e.clientY-cy,len=Math.hypot(dx,dy);
-if(len>R){dx=dx/len*R;dy=dy/len*R}
-knob.style.transform="translate("+dx+"px,"+dy+"px)";
-if(isAim){
-var ax=dx/R,ay=dy/R;
-mouse.x=clamp(player.x+ax*300,0,W);mouse.y=clamp(player.y+ay*300,0,H);
-mobile.aimX=mouse.x;mobile.aimY=mouse.y;
-}else{mobile.moveX=dx/R;mobile.moveY=dy/R}
-}
-function releaseMove(){mobile.moveX=0;mobile.moveY=0;mobile.moveId=null;mk.style.transform="translate(0,0)"}
-function releaseAim(){mobile.aimX=0;mobile.aimY=0;mobile.aimId=null;ak.style.transform="translate(0,0)"}
-ms.addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();mobile.moveId=e.pointerId;ms.setPointerCapture(e.pointerId);setStick(e,ms,mk,false)});
-ms.addEventListener("pointermove",function(e){if(e.pointerId===mobile.moveId){e.preventDefault();setStick(e,ms,mk,false)}});
-ms.addEventListener("pointerup",function(e){if(e.pointerId===mobile.moveId)releaseMove()});
-ms.addEventListener("pointercancel",function(e){if(e.pointerId===mobile.moveId)releaseMove()});
-as.addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();mobile.aimId=e.pointerId;as.setPointerCapture(e.pointerId);setStick(e,as,ak,true)});
-as.addEventListener("pointermove",function(e){if(e.pointerId===mobile.aimId){e.preventDefault();setStick(e,as,ak,true)}});
-as.addEventListener("pointerup",function(e){if(e.pointerId===mobile.aimId)releaseAim()});
-as.addEventListener("pointercancel",function(e){if(e.pointerId===mobile.aimId)releaseAim()});
-var fire=document.getElementById("fireBtn");
-fire.addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();mobile.fire=true;try{fire.setPointerCapture(e.pointerId)}catch(_){}});
-fire.addEventListener("pointerup",function(e){e.preventDefault();e.stopPropagation();mobile.fire=false});
-fire.addEventListener("pointercancel",function(){mobile.fire=false});
-document.getElementById("missileBtn").addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();missile()});
-document.getElementById("reloadBtn").addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();if(player)player.ammo=100});
-window.addEventListener("blur",function(){releaseMove();releaseAim();mobile.fire=false});
+var mk=ms.querySelector(".knob"),ak=as.querySelector(".knob");
+var moveActive=false,aimActive=false;
+
+function stickPoint(e,el,knob,isAim){
+  var r=el.getBoundingClientRect();
+  var cx=r.left+r.width/2,cy=r.top+r.height/2;
+  var maxR=r.width/2-8;
+  var dx=e.clientX-cx,dy=e.clientY-cy;
+  var len=Math.hypot(dx,dy);
+  if(len>maxR && len>0){dx=dx/len*maxR;dy=dy/len*maxR}
+  knob.style.transform="translate("+dx+"px,"+dy+"px)";
+  if(isAim){
+    var ax=dx/maxR,ay=dy/maxR;
+    if(Math.abs(ax)<.08&&Math.abs(ay)<.08){mobile.aimX=0;mobile.aimY=0;return}
+    mouse.x=clamp(player.x+ax*350,0,W);
+    mouse.y=clamp(player.y+ay*350,0,H);
+    mobile.aimX=mouse.x;
+    mobile.aimY=mouse.y;
+  }else{
+    mobile.moveX=clamp(dx/maxR,-1,1);
+    mobile.moveY=clamp(dy/maxR,-1,1);
+  }
 }
 
+function moveStart(e){
+  e.preventDefault();e.stopPropagation();
+  moveActive=true;
+  stickPoint(e,ms,mk,false);
+}
+function moveMove(e){
+  if(!moveActive)return;
+  e.preventDefault();e.stopPropagation();
+  stickPoint(e,ms,mk,false);
+}
+function moveEnd(e){
+  if(!moveActive)return;
+  e.preventDefault();e.stopPropagation();
+  moveActive=false;mobile.moveX=0;mobile.moveY=0;
+  mk.style.transform="translate(0,0)";
+}
+
+function aimStart(e){
+  e.preventDefault();e.stopPropagation();
+  aimActive=true;
+  stickPoint(e,as,ak,true);
+}
+function aimMove(e){
+  if(!aimActive)return;
+  e.preventDefault();e.stopPropagation();
+  stickPoint(e,as,ak,true);
+}
+function aimEnd(e){
+  if(!aimActive)return;
+  e.preventDefault();e.stopPropagation();
+  aimActive=false;mobile.aimX=0;mobile.aimY=0;
+  ak.style.transform="translate(0,0)";
+}
+
+// Use pointer events when available, with touch events as a fallback.
+// Do NOT use setPointerCapture: several mobile WebViews handle it badly.
+if(window.PointerEvent){
+  ms.addEventListener("pointerdown",moveStart,{passive:false});
+  ms.addEventListener("pointermove",moveMove,{passive:false});
+  ms.addEventListener("pointerup",moveEnd,{passive:false});
+  ms.addEventListener("pointercancel",moveEnd,{passive:false});
+  as.addEventListener("pointerdown",aimStart,{passive:false});
+  as.addEventListener("pointermove",aimMove,{passive:false});
+  as.addEventListener("pointerup",aimEnd,{passive:false});
+  as.addEventListener("pointercancel",aimEnd,{passive:false});
+}else{
+  function touchToMouse(t){return {clientX:t.clientX,clientY:t.clientY,preventDefault:function(){},stopPropagation:function(){}}}
+  ms.addEventListener("touchstart",function(e){moveStart(touchToMouse(e.changedTouches[0]));},{passive:false});
+  ms.addEventListener("touchmove",function(e){moveMove(touchToMouse(e.changedTouches[0]));},{passive:false});
+  ms.addEventListener("touchend",moveEnd,{passive:false});
+  as.addEventListener("touchstart",function(e){aimStart(touchToMouse(e.changedTouches[0]));},{passive:false});
+  as.addEventListener("touchmove",function(e){aimMove(touchToMouse(e.changedTouches[0]));},{passive:false});
+  as.addEventListener("touchend",aimEnd,{passive:false});
+}
+
+// Buttons
+var fire=document.getElementById("fireBtn");
+function fireOn(e){e.preventDefault();e.stopPropagation();mobile.fire=true}
+function fireOff(e){e.preventDefault();e.stopPropagation();mobile.fire=false}
+fire.addEventListener("pointerdown",fireOn,{passive:false});
+fire.addEventListener("pointerup",fireOff,{passive:false});
+fire.addEventListener("pointercancel",fireOff,{passive:false});
+fire.addEventListener("touchstart",fireOn,{passive:false});
+fire.addEventListener("touchend",fireOff,{passive:false});
+
+document.getElementById("missileBtn").addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();missile()},{passive:false});
+document.getElementById("reloadBtn").addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();if(player)player.ammo=100},{passive:false});
+
+window.addEventListener("blur",function(){
+  moveEnd({preventDefault:function(){},stopPropagation:function(){}});
+  aimEnd({preventDefault:function(){},stopPropagation:function(){}});
+  mobile.fire=false;
+});
+}
 window.addEventListener("resize",resize);
 window.addEventListener("keydown",function(e){keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==="m")missile();if(e.key.toLowerCase()==="r"&&player)player.ammo=100});
 window.addEventListener("keyup",function(e){keys[e.key.toLowerCase()]=false});
