@@ -72,8 +72,8 @@ function renderShop(){
   var s=skinData[i],owned=s.id==="blue";
   try{owned=owned||localStorage.getItem("airCombatSkinOwned_"+s.id)==="1"}catch(e){}
   var equipped=selectedSkin===s.id,card=document.createElement("div");
-  card.className="skinCard";
-  card.innerHTML='<div class="skinName" style="color:'+s.color+';text-shadow:0 0 12px '+s.color+';background:linear-gradient(90deg,red,orange,yellow,lime,cyan,blue,violet,red);background-size:300% auto;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:rainbowText 3s linear infinite">'+s.name+'</div><div class="skinPrice">'+(s.price?"🪙 "+s.price.toLocaleString()+" COINS":"FREE")+"</div>";
+  card.className="skinCard";if(s.rainbow){card.classList.add("rainbowSkinCard")}
+  card.innerHTML='<div class="skinName" style="color:'+s.color+';text-shadow:0 0 12px '+s.color+';">'+s.name+'</div><div class="skinPrice">'+(s.price?"🪙 "+s.price.toLocaleString()+" COINS":"FREE")+"</div>";
   var btn=document.createElement("button");btn.className="skinBtn";
   btn.textContent=equipped?"EQUIPPED":(owned?"EQUIP":("BUY FOR 🪙 "+s.price.toLocaleString()));
   btn.disabled=equipped;btn.onclick=(function(id){return function(){buyOrEquipSkin(id)}})(s.id);
