@@ -6,7 +6,8 @@ canvas{display:block;width:100vw;height:100vh;background:#071522;cursor:crosshai
 .hud{position:fixed;top:12px;padding:10px 14px;background:#061321e8;border:1px solid #315b78;border-radius:12px;line-height:1.65;z-index:5;pointer-events:none}
 .left{left:12px}.right{right:12px;text-align:right}.tip{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:5;white-space:nowrap;text-shadow:0 2px 5px #000}
 #gameOver{position:fixed;inset:0;display:none;place-items:center;background:#000b;z-index:10}.box{background:#071522;border:1px solid #46708b;border-radius:18px;padding:32px;text-align:center}button{background:#168ce0;color:white;border:0;border-radius:10px;padding:12px 26px;font-weight:bold;cursor:pointer}
-#mobileUI{display:none;position:fixed;inset:0;z-index:7;pointer-events:none;touch-action:none}
+#mobileUI{display:none;position:fixed;inset:0;z-index:50;pointer-events:none;touch-action:none}
+html.touch-device #mobileUI{display:block}
 .stick{position:absolute;width:118px;height:118px;border:2px solid #ffffff55;border-radius:50%;background:#ffffff12;box-shadow:0 0 20px #0008}
 .stick .knob{position:absolute;width:48px;height:48px;left:33px;top:33px;border-radius:50%;background:#ffffff35;border:2px solid #fff8;box-sizing:border-box}
 #moveStick{left:24px;bottom:26px}#aimStick{right:24px;bottom:26px}
@@ -18,7 +19,7 @@ canvas{display:block;width:100vw;height:100vh;background:#071522;cursor:crosshai
 @media (pointer:coarse), (max-width:900px){
 .tip{display:none}.hud{font-size:12px;padding:7px 9px}.right{top:72px}
 #mobileUI{display:block}.mobileTip{display:block}
-#gameOver{z-index:20}
+#gameOver{z-index:100}
 }
 </style></head><body>
 <canvas id="game"></canvas>
@@ -135,6 +136,7 @@ window.addEventListener("mousemove",function(e){mouse.x=e.clientX;mouse.y=e.clie
 window.addEventListener("mousedown",function(e){if(e.button===0)mouse.down=true});
 window.addEventListener("mouseup",function(e){if(e.button===0)mouse.down=false});
 document.getElementById("restart").addEventListener("click",reset);
+if(("ontouchstart" in window)||navigator.maxTouchPoints>0||navigator.msMaxTouchPoints>0)document.documentElement.classList.add("touch-device");
 resize();mouse.x=W/2;mouse.y=H/2;setupMobile();reset();
 function loop(now){var dt=last?Math.min(.033,(now-last)/1000):.016;last=now;update(dt);draw();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
