@@ -1,7 +1,7 @@
 <!doctype html>
 <html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Air Combat</title>
 <style>
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061522;color:#fff;font:14px Arial,sans-serif}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:#061522;color:#fff;font:14px Arial,sans-serif}
 canvas{display:block;width:100vw;height:100vh;background:#071522;cursor:crosshair;touch-action:none}
 .hud{position:fixed;top:12px;padding:10px 14px;background:#061321e8;border:1px solid #315b78;border-radius:12px;line-height:1.65;z-index:5;pointer-events:none}
 .left{left:12px}.right{right:12px;text-align:right}.tip{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:5;white-space:nowrap;text-shadow:0 2px 5px #000}
@@ -15,7 +15,7 @@ canvas{display:block;width:100vw;height:100vh;background:#071522;cursor:crosshai
 #missileBtn{right:28px;bottom:170px;width:62px;height:62px}
 #reloadBtn{right:102px;bottom:172px;width:62px;height:62px}
 .mobileTip{display:none;position:absolute;left:50%;top:12px;transform:translateX(-50%);background:#061321cc;border:1px solid #315b78;border-radius:10px;padding:7px 10px;white-space:nowrap;font-size:12px}
-@media (pointer:coarse), (max-width:700px){
+@media (pointer:coarse), (max-width:900px){
 .tip{display:none}.hud{font-size:12px;padding:7px 9px}.right{top:72px}
 #mobileUI{display:block}.mobileTip{display:block}
 #gameOver{z-index:20}
@@ -98,31 +98,34 @@ var fx=[];if(player.rapid>0)fx.push("RAPID "+player.rapid.toFixed(1));if(player.
 function setupMobile(){
 var ms=document.getElementById("moveStick"),as=document.getElementById("aimStick");
 var mk=ms.querySelector(".knob"),ak=as.querySelector(".knob"),R=59;
-function point(t,el,knob,isAim){
+function setStick(e,el,knob,isAim){
 var r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
-var dx=t.clientX-cx,dy=t.clientY-cy,len=Math.sqrt(dx*dx+dy*dy);
+var dx=e.clientX-cx,dy=e.clientY-cy,len=Math.hypot(dx,dy);
 if(len>R){dx=dx/len*R;dy=dy/len*R}
 knob.style.transform="translate("+dx+"px,"+dy+"px)";
-if(isAim){mobile.aimX=clamp(cx+dx*4,0,W);mobile.aimY=clamp(cy+dy*4,0,H)}
-else{mobile.moveX=dx/R;mobile.moveY=dy/R}
+if(isAim){
+var ax=dx/R,ay=dy/R;
+mouse.x=clamp(player.x+ax*300,0,W);mouse.y=clamp(player.y+ay*300,0,H);
+mobile.aimX=mouse.x;mobile.aimY=mouse.y;
+}else{mobile.moveX=dx/R;mobile.moveY=dy/R}
 }
-function resetMove(){mobile.moveX=0;mobile.moveY=0;mobile.moveId=null;mk.style.transform="translate(0,0)"}
-function resetAim(){mobile.aimX=0;mobile.aimY=0;mobile.aimId=null;ak.style.transform="translate(0,0)"}
-ms.addEventListener("touchstart",function(e){e.preventDefault();if(mobile.moveId===null){mobile.moveId=e.changedTouches[0].identifier;point(e.changedTouches[0],ms,mk,false)}},{passive:false});
-ms.addEventListener("touchmove",function(e){e.preventDefault();for(var i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===mobile.moveId)point(e.changedTouches[i],ms,mk,false)},{passive:false});
-ms.addEventListener("touchend",function(e){e.preventDefault();for(var i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===mobile.moveId)resetMove()},{passive:false});
-ms.addEventListener("touchcancel",resetMove,{passive:false});
-as.addEventListener("touchstart",function(e){e.preventDefault();if(mobile.aimId===null){mobile.aimId=e.changedTouches[0].identifier;point(e.changedTouches[0],as,ak,true)}},{passive:false});
-as.addEventListener("touchmove",function(e){e.preventDefault();for(var i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===mobile.aimId)point(e.changedTouches[i],as,ak,true)},{passive:false});
-as.addEventListener("touchend",function(e){e.preventDefault();for(var i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===mobile.aimId)resetAim()},{passive:false});
-as.addEventListener("touchcancel",resetAim,{passive:false});
+function releaseMove(){mobile.moveX=0;mobile.moveY=0;mobile.moveId=null;mk.style.transform="translate(0,0)"}
+function releaseAim(){mobile.aimX=0;mobile.aimY=0;mobile.aimId=null;ak.style.transform="translate(0,0)"}
+ms.addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();mobile.moveId=e.pointerId;ms.setPointerCapture(e.pointerId);setStick(e,ms,mk,false)});
+ms.addEventListener("pointermove",function(e){if(e.pointerId===mobile.moveId){e.preventDefault();setStick(e,ms,mk,false)}});
+ms.addEventListener("pointerup",function(e){if(e.pointerId===mobile.moveId)releaseMove()});
+ms.addEventListener("pointercancel",function(e){if(e.pointerId===mobile.moveId)releaseMove()});
+as.addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();mobile.aimId=e.pointerId;as.setPointerCapture(e.pointerId);setStick(e,as,ak,true)});
+as.addEventListener("pointermove",function(e){if(e.pointerId===mobile.aimId){e.preventDefault();setStick(e,as,ak,true)}});
+as.addEventListener("pointerup",function(e){if(e.pointerId===mobile.aimId)releaseAim()});
+as.addEventListener("pointercancel",function(e){if(e.pointerId===mobile.aimId)releaseAim()});
 var fire=document.getElementById("fireBtn");
-function fireOn(e){e.preventDefault();mobile.fire=true}
-function fireOff(e){e.preventDefault();mobile.fire=false}
-fire.addEventListener("touchstart",fireOn,{passive:false});fire.addEventListener("touchend",fireOff,{passive:false});fire.addEventListener("touchcancel",fireOff,{passive:false});
-document.getElementById("missileBtn").addEventListener("touchstart",function(e){e.preventDefault();missile()},{passive:false});
-document.getElementById("reloadBtn").addEventListener("touchstart",function(e){e.preventDefault();if(player)player.ammo=100},{passive:false});
-window.addEventListener("touchmove",function(e){e.preventDefault()},{passive:false});
+fire.addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();mobile.fire=true});
+fire.addEventListener("pointerup",function(e){e.preventDefault();mobile.fire=false});
+fire.addEventListener("pointercancel",function(){mobile.fire=false});
+document.getElementById("missileBtn").addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();missile()});
+document.getElementById("reloadBtn").addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();if(player)player.ammo=100});
+window.addEventListener("blur",function(){releaseMove();releaseAim();mobile.fire=false});
 }
 
 window.addEventListener("resize",resize);
