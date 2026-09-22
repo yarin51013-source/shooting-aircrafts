@@ -113,14 +113,14 @@ function reset(){
 function spawnEnemy(){var side=Math.floor(Math.random()*4),x,y;if(side===0){x=-70;y=Math.random()*H}else if(side===1){x=W+70;y=Math.random()*H}else if(side===2){x=Math.random()*W;y=-70}else{x=Math.random()*W;y=H+70}enemies.push({x:x,y:y,hp:60,maxHp:60,angle:0,speed:55+Math.random()*35,shot:1+Math.random()*2})}
 function spawnPower(){var types=["REPAIR","RAPID","EXPLOSIVE","MISSILES","SHIELD"];powerups.push({x:80+Math.random()*Math.max(80,W-160),y:90+Math.random()*Math.max(80,H-180),type:types[Math.floor(Math.random()*types.length)],life:15,spin:0})}
 function particlesAt(x,y,n,color){for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,s=40+Math.random()*180;particles.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:.3+Math.random()*.6,color:color})}}
-function shoot(){if(dead||player.ammo<=0||fireCooldown>0)return;player.ammo--;sfxShoot();fireCooldown=player.rapid>0?.045:.11;var a=player.angle;bullets.push({x:player.x+Math.cos(a)*28,y:player.y+Math.sin(a)*28,vx:Math.cos(a)*780,vy:Math.sin(a)*780,life:1.2,damage:player.explosive>0?30:20,enemy:false,missile:false});particlesAt(player.x+Math.cos(a)*28,player.y+Math.sin(a)*28,3,"#dff")}
+function shoot(){if(dead||(!DEV_MODE&&player.ammo<=0)||fireCooldown>0)return;if(!DEV_MODE)player.ammo--;sfxShoot();fireCooldown=DEV_MODE?.025:(player.rapid>0?.045:.11);var a=player.angle;bullets.push({x:player.x+Math.cos(a)*28,y:player.y+Math.sin(a)*28,vx:Math.cos(a)*780,vy:Math.sin(a)*780,life:1.2,damage:player.explosive>0?30:20,enemy:false,missile:false});particlesAt(player.x+Math.cos(a)*28,player.y+Math.sin(a)*28,3,"#dff")}
 function missile(){if(dead||player.missiles<=0)return;var target=null,best=Infinity;for(var i=0;i<enemies.length;i++){if(enemies[i].hp<=0)continue;var d=dist(player,enemies[i]);if(d<best){best=d;target=enemies[i]}}if(!target)return;player.missiles--;sfxMissile();var a=Math.atan2(target.y-player.y,target.x-player.x);bullets.push({x:player.x,y:player.y,vx:Math.cos(a)*430,vy:Math.sin(a)*430,life:4,damage:100,enemy:false,missile:true,target:target})}
 function enemyShoot(e){var a=Math.atan2(player.y-e.y,player.x-e.x);bullets.push({x:e.x,y:e.y,vx:Math.cos(a)*260,vy:Math.sin(a)*260,life:3,damage:12,enemy:true,missile:false})}
 function collectPower(x){sfxPickup();if(x.type==="REPAIR")player.hp=clamp(player.hp+35,0,100);if(x.type==="RAPID")player.rapid=8;if(x.type==="EXPLOSIVE")player.explosive=8;if(x.type==="MISSILES")player.missiles+=3;if(x.type==="SHIELD")player.shield=7;particlesAt(x.x,x.y,20,"#ffd45a")}
 function update(dt){
 if(!gameStarted||!player)return;
 if(dead)return;
-fireCooldown=Math.max(0,fireCooldown-dt);player.rapid=Math.max(0,player.rapid-dt);player.explosive=Math.max(0,player.explosive-dt);player.shield=Math.max(0,player.shield-dt);shake=Math.max(0,shake-dt);
+fireCooldown=Math.max(0,fireCooldown-dt);if(DEV_MODE){player.ammo=999999;player.rapid=1}else player.rapid=Math.max(0,player.rapid-dt);player.explosive=Math.max(0,player.explosive-dt);player.shield=Math.max(0,player.shield-dt);shake=Math.max(0,shake-dt);
 var ax=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),ay=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
 if(Math.abs(mobile.moveX)+Math.abs(mobile.moveY)>.05){ax=mobile.moveX;ay=mobile.moveY}
 if(mobile.aimX!==0||mobile.aimY!==0){mouse.x=mobile.aimX;mouse.y=mobile.aimY}
