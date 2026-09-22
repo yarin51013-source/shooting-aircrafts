@@ -25,7 +25,7 @@ canvas{display:block;width:100vw;height:100vh;background:#071522;cursor:crosshai
 </style></head><body>
 <canvas id="game"></canvas>
 <div class="hud left">❤️ HP <b id="hp">100</b><br>⚡ SPEED <b id="speed">0</b> · ALT <b id="alt">1200</b><br>🔫 AMMO <b id="ammo">100</b> · 🚀 MISSILES <b id="missiles">4</b></div>
-<div class="hud right">🏆 SCORE <b id="score">0</b><br><b id="effect">READY</b></div>
+<div class="hud right">🏆 SCORE <b id="score">0</b><br><b id="effect">READY</b></div><button id="audioBtn" style="position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:80;background:#168ce0;color:#fff;border:1px solid #ffffff66;border-radius:10px;padding:8px 14px;font-weight:bold">🔊 SOUND ON</button>
 <div class="tip">WASD / ARROWS fly · MOUSE aim · HOLD CLICK fire · M missile · R reload</div>
 <div id="mobileUI">
 <div class="mobileTip">LEFT: MOVE · RIGHT: AIM · FIRE: SHOOT</div>
@@ -99,55 +99,64 @@ var fx=[];if(player.rapid>0)fx.push("RAPID "+player.rapid.toFixed(1));if(player.
 
 
 // ==================== AUDIO ====================
-var audioCtx=null,musicGain=null,sfxGain=null,musicTimer=null,musicOn=true;
+var audioCtx=null,musicGain=null,sfxGain=null,musicTimer=null,musicOn=false;
 function initAudio(){
-  if(audioCtx)return;
-  var AC=window.AudioContext||window.webkitAudioContext;
-  if(!AC)return;
-  audioCtx=new AC();
-  musicGain=audioCtx.createGain();musicGain.gain.value=.055;musicGain.connect(audioCtx.destination);
-  sfxGain=audioCtx.createGain();sfxGain.gain.value=.18;sfxGain.connect(audioCtx.destination);
-  startMusic();
+  if(!audioCtx){
+    var AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC)return false;
+    audioCtx=new AC();
+    musicGain=audioCtx.createGain();musicGain.gain.value=.12;musicGain.connect(audioCtx.destination);
+    sfxGain=audioCtx.createGain();sfxGain.gain.value=.32;sfxGain.connect(audioCtx.destination);
+  }
+  if(audioCtx.state==="suspended")audioCtx.resume();
+  return true;
 }
-function tone(freq,duration,type,volume,when){
-  if(!audioCtx)return;
-  var o=audioCtx.createOscillator(),g=audioCtx.createGain();
-  o.type=type||"sine";o.frequency.setValueAtTime(freq,when||audioCtx.currentTime);
-  g.gain.setValueAtTime(volume||.08,when||audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(.001,(when||audioCtx.currentTime)+duration);
-  o.connect(g);g.connect(sfxGain);o.start(when||audioCtx.currentTime);o.stop((when||audioCtx.currentTime)+duration);
+function tone(freq,duration,type,volume,when,dest){
+  if(!initAudio())return;
+  var t=when||audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type=type||"sine";o.frequency.setValueAtTime(freq,t);
+  g.gain.setValueAtTime(Math.max(.0001,volume||.08),t);
+  g.gain.exponentialRampToValueAtTime(.0001,t+duration);
+  o.connect(g);g.connect(dest||sfxGain);o.start(t);o.stop(t+duration+.02);
 }
 function noise(duration,volume){
-  if(!audioCtx)return;
-  var n=audioCtx.createBufferSource(),b=audioCtx.createBuffer(1,audioCtx.sampleRate*duration,audioCtx.sampleRate),d=b.getChannelData(0);
-  for(var i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2);
-  n.buffer=b;var g=audioCtx.createGain();g.gain.value=volume||.08;n.connect(g);g.connect(sfxGain);n.start();n.stop(audioCtx.currentTime+duration);
+  if(!initAudio())return;
+  var n=audioCtx.createBufferSource(),b=audioCtx.createBuffer(1,Math.max(1,audioCtx.sampleRate*duration),audioCtx.sampleRate),d=b.getChannelData(0);
+  for(var i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);
+  n.buffer=b;var g=audioCtx.createGain();g.gain.value=volume||.1;n.connect(g);g.connect(sfxGain);n.start();n.stop(audioCtx.currentTime+duration);
 }
-function sfxShoot(){tone(180,.055,"sawtooth",.045);tone(80,.09,"square",.025)}
-function sfxHit(){tone(120,.08,"square",.055);noise(.07,.025)}
-function sfxExplosion(){noise(.45,.12);tone(70,.35,"sawtooth",.07)}
-function sfxMissile(){tone(100,.12,"sawtooth",.07);tone(240,.3,"sawtooth",.035)}
-function sfxPickup(){tone(520,.08,"sine",.055);tone(780,.12,"sine",.045)}
-function sfxDamage(){tone(95,.18,"square",.07);noise(.1,.035)}
-function sfxReload(){tone(330,.08,"square",.04);tone(440,.1,"square",.04)}
+function sfxShoot(){tone(170,.07,"sawtooth",.10);tone(70,.11,"square",.06)}
+function sfxExplosion(){noise(.35,.28);tone(65,.3,"sawtooth",.12)}
+function sfxMissile(){tone(90,.14,"sawtooth",.13);tone(260,.25,"sawtooth",.07)}
+function sfxPickup(){tone(500,.1,"sine",.11);tone(800,.14,"sine",.09)}
+function sfxDamage(){tone(90,.2,"square",.13);noise(.1,.08)}
+function sfxReload(){tone(300,.1,"square",.08);tone(450,.12,"square",.08)}
 function startMusic(){
-  if(!audioCtx||musicTimer)return;
-  var notes=[110,138.59,164.81,138.59,123.47,164.81,185,164.81];
+  if(!initAudio()||musicTimer)return;
+  musicOn=true;
+  var notes=[110,138.59,164.81,185,164.81,146.83,123.47,98];
   var i=0;
   function beat(){
-    if(!musicOn||!audioCtx)return;
-    var now=audioCtx.currentTime;
-    tone(notes[i%notes.length],.28,"triangle",.018,now);
-    tone(notes[(i+3)%notes.length]/2,.35,"sine",.012,now);
+    if(!musicOn)return;
+    var t=audioCtx.currentTime;
+    tone(notes[i%notes.length],.32,"triangle",.045,t,musicGain);
+    tone(notes[(i+2)%notes.length]/2,.55,"sine",.025,t,musicGain);
     i++;
   }
-  beat();musicTimer=setInterval(beat,380);
+  beat();musicTimer=setInterval(beat,360);
 }
-function stopMusic(){if(musicTimer){clearInterval(musicTimer);musicTimer=null}}
-function audioUserStart(){initAudio();if(audioCtx&&audioCtx.state==="suspended")audioCtx.resume()}
-window.addEventListener("pointerdown",audioUserStart,{once:true});
-window.addEventListener("touchstart",audioUserStart,{once:true});
-
+function stopMusic(){musicOn=false;if(musicTimer){clearInterval(musicTimer);musicTimer=null}}
+function toggleAudio(){
+  if(!initAudio())return;
+  if(musicOn){stopMusic();document.getElementById("audioBtn").textContent="🔇 SOUND OFF"}
+  else{startMusic();document.getElementById("audioBtn").textContent="🔊 SOUND ON"}
+}
+document.getElementById("audioBtn").addEventListener("click",function(e){
+  e.preventDefault();e.stopPropagation();toggleAudio();
+});
+document.getElementById("audioBtn").addEventListener("touchstart",function(e){
+  e.preventDefault();e.stopPropagation();toggleAudio();
+},{passive:false});
 function setupMobile(){
 var ms=document.getElementById("moveStick"),as=document.getElementById("aimStick");
 var mk=ms.querySelector(".knob"),ak=as.querySelector(".knob");
