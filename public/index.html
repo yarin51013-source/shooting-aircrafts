@@ -2,15 +2,37 @@
 <html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Air Combat</title>
 <style>
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061522;color:#fff;font:14px Arial,sans-serif}
-canvas{display:block;width:100vw;height:100vh;background:#071522;cursor:crosshair}
+canvas{display:block;width:100vw;height:100vh;background:#071522;cursor:crosshair;touch-action:none}
 .hud{position:fixed;top:12px;padding:10px 14px;background:#061321e8;border:1px solid #315b78;border-radius:12px;line-height:1.65;z-index:5;pointer-events:none}
 .left{left:12px}.right{right:12px;text-align:right}.tip{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:5;white-space:nowrap;text-shadow:0 2px 5px #000}
 #gameOver{position:fixed;inset:0;display:none;place-items:center;background:#000b;z-index:10}.box{background:#071522;border:1px solid #46708b;border-radius:18px;padding:32px;text-align:center}button{background:#168ce0;color:white;border:0;border-radius:10px;padding:12px 26px;font-weight:bold;cursor:pointer}
+#mobileUI{display:none;position:fixed;inset:0;z-index:7;pointer-events:none;touch-action:none}
+.stick{position:absolute;width:118px;height:118px;border:2px solid #ffffff55;border-radius:50%;background:#ffffff12;box-shadow:0 0 20px #0008}
+.stick .knob{position:absolute;width:48px;height:48px;left:33px;top:33px;border-radius:50%;background:#ffffff35;border:2px solid #fff8;box-sizing:border-box}
+#moveStick{left:24px;bottom:26px}#aimStick{right:24px;bottom:26px}
+.mbtn{position:absolute;pointer-events:auto;border:1px solid #ffffff66;background:#071522cc;color:#fff;border-radius:50%;font-weight:bold;box-shadow:0 4px 14px #0008}
+#fireBtn{right:174px;bottom:36px;width:82px;height:82px;font-size:18px;background:#b52a2acc}
+#missileBtn{right:28px;bottom:170px;width:62px;height:62px}
+#reloadBtn{right:102px;bottom:172px;width:62px;height:62px}
+.mobileTip{display:none;position:absolute;left:50%;top:12px;transform:translateX(-50%);background:#061321cc;border:1px solid #315b78;border-radius:10px;padding:7px 10px;white-space:nowrap;font-size:12px}
+@media (pointer:coarse), (max-width:700px){
+.tip{display:none}.hud{font-size:12px;padding:7px 9px}.right{top:72px}
+#mobileUI{display:block}.mobileTip{display:block}
+#gameOver{z-index:20}
+}
 </style></head><body>
 <canvas id="game"></canvas>
 <div class="hud left">❤️ HP <b id="hp">100</b><br>⚡ SPEED <b id="speed">0</b> · ALT <b id="alt">1200</b><br>🔫 AMMO <b id="ammo">100</b> · 🚀 MISSILES <b id="missiles">4</b></div>
 <div class="hud right">🏆 SCORE <b id="score">0</b><br><b id="effect">READY</b></div>
 <div class="tip">WASD / ARROWS fly · MOUSE aim · HOLD CLICK fire · M missile · R reload</div>
+<div id="mobileUI">
+<div class="mobileTip">LEFT: MOVE · RIGHT: AIM · FIRE: SHOOT</div>
+<div class="stick" id="moveStick"><div class="knob"></div></div>
+<div class="stick" id="aimStick"><div class="knob"></div></div>
+<button class="mbtn" id="fireBtn">FIRE</button>
+<button class="mbtn" id="missileBtn">🚀</button>
+<button class="mbtn" id="reloadBtn">↻</button>
+</div>
 <div id="gameOver"><div class="box"><h1>SHOT DOWN</h1><p>Score: <b id="finalScore">0</b></p><button id="restart">RESTART</button></div></div>
 <script>
 (function(){
@@ -18,6 +40,7 @@ canvas{display:block;width:100vw;height:100vh;background:#071522;cursor:crosshai
 var canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
 var W=0,H=0,dpr=1,keys={},mouse={x:0,y:0,down:false},player,enemies=[],bullets=[],powerups=[],particles=[];
 var score=0,spawnTimer=.5,powerTimer=4,fireCooldown=0,dead=false,last=0,shake=0;
+var mobile={moveX:0,moveY:0,aimX:0,aimY:0,fire:false,moveId:null,aimId:null};
 
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function dist(a,b){var dx=a.x-b.x,dy=a.y-b.y;return Math.sqrt(dx*dx+dy*dy)}
@@ -34,8 +57,10 @@ function update(dt){
 if(dead)return;
 fireCooldown=Math.max(0,fireCooldown-dt);player.rapid=Math.max(0,player.rapid-dt);player.explosive=Math.max(0,player.explosive-dt);player.shield=Math.max(0,player.shield-dt);shake=Math.max(0,shake-dt);
 var ax=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),ay=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
+if(Math.abs(mobile.moveX)+Math.abs(mobile.moveY)>.05){ax=mobile.moveX;ay=mobile.moveY}
+if(mobile.aimX!==0||mobile.aimY!==0){mouse.x=mobile.aimX;mouse.y=mobile.aimY}
 player.vx+=(ax*460-player.vx)*dt*4.5;player.vy+=(ay*460-player.vy)*dt*4.5;player.x=clamp(player.x+player.vx*dt,30,W-30);player.y=clamp(player.y+player.vy*dt,65,H-45);
-var targetAngle=Math.atan2(mouse.y-player.y,mouse.x-player.x),delta=Math.atan2(Math.sin(targetAngle-player.angle),Math.cos(targetAngle-player.angle));player.angle+=clamp(delta,-dt*7,dt*7);if(mouse.down)shoot();
+var targetAngle=Math.atan2(mouse.y-player.y,mouse.x-player.x),delta=Math.atan2(Math.sin(targetAngle-player.angle),Math.cos(targetAngle-player.angle));player.angle+=clamp(delta,-dt*7,dt*7);if(mouse.down||mobile.fire)shoot();
 spawnTimer-=dt;if(spawnTimer<=0){spawnEnemy();spawnTimer=.65+Math.random()*.75}powerTimer-=dt;if(powerTimer<=0&&powerups.length<4){spawnPower();powerTimer=6+Math.random()*5}
 for(var i=0;i<enemies.length;i++){var e=enemies[i],a=Math.atan2(player.y-e.y,player.x-e.x),turn=Math.atan2(Math.sin(a-e.angle),Math.cos(a-e.angle));e.angle+=clamp(turn,-dt*3,dt*3);e.x+=Math.cos(e.angle)*e.speed*dt;e.y+=Math.sin(e.angle)*e.speed*dt;e.shot-=dt;if(e.shot<=0){enemyShoot(e);e.shot=1.2+Math.random()*1.4}if(dist(e,player)<30){if(player.shield<=0)player.hp-=25*dt;e.hp=0;particlesAt(e.x,e.y,18,"#ff5544");shake=.25}}
 for(var j=0;j<bullets.length;j++){var b=bullets[j];
@@ -69,6 +94,37 @@ ctx.strokeStyle="#fff";ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(mouse.x,mouse.y
 document.getElementById("hp").textContent=Math.max(0,Math.round(player.hp));document.getElementById("speed").textContent=Math.round(Math.sqrt(player.vx*player.vx+player.vy*player.vy));document.getElementById("alt").textContent=Math.round(1200-player.y*.35);document.getElementById("ammo").textContent=player.ammo;document.getElementById("missiles").textContent=player.missiles;document.getElementById("score").textContent=score;
 var fx=[];if(player.rapid>0)fx.push("RAPID "+player.rapid.toFixed(1));if(player.explosive>0)fx.push("EXPLOSIVE "+player.explosive.toFixed(1));if(player.shield>0)fx.push("SHIELD "+player.shield.toFixed(1));document.getElementById("effect").textContent=fx.length?fx.join(" · "):"READY";
 }
+
+function setupMobile(){
+var ms=document.getElementById("moveStick"),as=document.getElementById("aimStick");
+var mk=ms.querySelector(".knob"),ak=as.querySelector(".knob"),R=59;
+function point(t,el,knob,isAim){
+var r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+var dx=t.clientX-cx,dy=t.clientY-cy,len=Math.sqrt(dx*dx+dy*dy);
+if(len>R){dx=dx/len*R;dy=dy/len*R}
+knob.style.transform="translate("+dx+"px,"+dy+"px)";
+if(isAim){mobile.aimX=clamp(cx+dx*4,0,W);mobile.aimY=clamp(cy+dy*4,0,H)}
+else{mobile.moveX=dx/R;mobile.moveY=dy/R}
+}
+function resetMove(){mobile.moveX=0;mobile.moveY=0;mobile.moveId=null;mk.style.transform="translate(0,0)"}
+function resetAim(){mobile.aimX=0;mobile.aimY=0;mobile.aimId=null;ak.style.transform="translate(0,0)"}
+ms.addEventListener("touchstart",function(e){e.preventDefault();if(mobile.moveId===null){mobile.moveId=e.changedTouches[0].identifier;point(e.changedTouches[0],ms,mk,false)}},{passive:false});
+ms.addEventListener("touchmove",function(e){e.preventDefault();for(var i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===mobile.moveId)point(e.changedTouches[i],ms,mk,false)},{passive:false});
+ms.addEventListener("touchend",function(e){e.preventDefault();for(var i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===mobile.moveId)resetMove()},{passive:false});
+ms.addEventListener("touchcancel",resetMove,{passive:false});
+as.addEventListener("touchstart",function(e){e.preventDefault();if(mobile.aimId===null){mobile.aimId=e.changedTouches[0].identifier;point(e.changedTouches[0],as,ak,true)}},{passive:false});
+as.addEventListener("touchmove",function(e){e.preventDefault();for(var i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===mobile.aimId)point(e.changedTouches[i],as,ak,true)},{passive:false});
+as.addEventListener("touchend",function(e){e.preventDefault();for(var i=0;i<e.changedTouches.length;i++)if(e.changedTouches[i].identifier===mobile.aimId)resetAim()},{passive:false});
+as.addEventListener("touchcancel",resetAim,{passive:false});
+var fire=document.getElementById("fireBtn");
+function fireOn(e){e.preventDefault();mobile.fire=true}
+function fireOff(e){e.preventDefault();mobile.fire=false}
+fire.addEventListener("touchstart",fireOn,{passive:false});fire.addEventListener("touchend",fireOff,{passive:false});fire.addEventListener("touchcancel",fireOff,{passive:false});
+document.getElementById("missileBtn").addEventListener("touchstart",function(e){e.preventDefault();missile()},{passive:false});
+document.getElementById("reloadBtn").addEventListener("touchstart",function(e){e.preventDefault();if(player)player.ammo=100},{passive:false});
+window.addEventListener("touchmove",function(e){e.preventDefault()},{passive:false});
+}
+
 window.addEventListener("resize",resize);
 window.addEventListener("keydown",function(e){keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==="m")missile();if(e.key.toLowerCase()==="r"&&player)player.ammo=100});
 window.addEventListener("keyup",function(e){keys[e.key.toLowerCase()]=false});
@@ -76,7 +132,7 @@ window.addEventListener("mousemove",function(e){mouse.x=e.clientX;mouse.y=e.clie
 window.addEventListener("mousedown",function(e){if(e.button===0)mouse.down=true});
 window.addEventListener("mouseup",function(e){if(e.button===0)mouse.down=false});
 document.getElementById("restart").addEventListener("click",reset);
-resize();mouse.x=W/2;mouse.y=H/2;reset();
+resize();mouse.x=W/2;mouse.y=H/2;setupMobile();reset();
 function loop(now){var dt=last?Math.min(.033,(now-last)/1000):.016;last=now;update(dt);draw();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 })();
