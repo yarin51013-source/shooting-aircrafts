@@ -448,8 +448,7 @@ window.addEventListener("blur",function(){
 }
 
 window.addEventListener("resize",resize);
-window.addEventListener("keydown",function(e){keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==="m")missile();if(e.key.toLowerCase()==="r"&&player)player.ammo=100});
-window.addEventListener("keyup",function(e){keys[e.key.toLowerCase()]=false});
+window.addEventListener("keydown",function(e){\n  var k=e.key.toLowerCase();\n  if(k==="w"||k==="a"||k==="s"||k==="d"||k==="arrowup"||k==="arrowdown"||k==="arrowleft"||k==="arrowright"){keys[k]=true;e.preventDefault()}\n  if(e.code==="KeyW")keys.w=true;if(e.code==="KeyA")keys.a=true;if(e.code==="KeyS")keys.s=true;if(e.code==="KeyD")keys.d=true;\n  if(e.code==="ArrowUp")keys.arrowup=true;if(e.code==="ArrowDown")keys.arrowdown=true;if(e.code==="ArrowLeft")keys.arrowleft=true;if(e.code==="ArrowRight")keys.arrowright=true;\n  if(k==="m")missile();if(k==="r"&&player)player.ammo=100;\n});\nwindow.addEventListener("keyup",function(e){\n  var k=e.key.toLowerCase();\n  keys[k]=false;\n  if(e.code==="KeyW")keys.w=false;if(e.code==="KeyA")keys.a=false;if(e.code==="KeyS")keys.s=false;if(e.code==="KeyD")keys.d=false;\n  if(e.code==="ArrowUp")keys.arrowup=false;if(e.code==="ArrowDown")keys.arrowdown=false;if(e.code==="ArrowLeft")keys.arrowleft=false;if(e.code==="ArrowRight")keys.arrowright=false;\n});
 window.addEventListener("mousemove",function(e){mouse.x=e.clientX;mouse.y=e.clientY});
 window.addEventListener("mousedown",function(e){if(e.button===0)mouse.down=true});
 window.addEventListener("mouseup",function(e){if(e.button===0)mouse.down=false});
