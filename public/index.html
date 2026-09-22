@@ -42,7 +42,7 @@ canvas{display:block;width:100vw;height:100vh;background:#071522;cursor:crosshai
 <button class="mbtn" id="missileBtn">🚀</button>
 <button class="mbtn" id="reloadBtn">↻</button>
 </div>
-<div id="gameOver"><div class="box"><h1>SHOT DOWN</h1><p>Score: <b id="finalScore">0</b></p><p>🪙 Coins earned: <b id="earnedCoins">0</b></p><p>🪙 Total coins from all rounds: <b id="totalCoins">0</b></p><button id="restart">RESTART</button></div></div>
+<div id="gameOver"><div class="box"><h1>SHOT DOWN</h1><p>Score: <b id="finalScore">0</b></p><p>🪙 Coins earned: <b id="earnedCoins">0</b></p><p>🪙 Total coins from all rounds: <b id="totalCoins">0</b></p><button id="restart">RESTART</button><button id="hubReturn" style="margin-left:10px;background:#344d5d">HUB</button></div></div>
 <script>
 (function(){
 "use strict";
@@ -414,7 +414,7 @@ window.addEventListener("mousemove",function(e){mouse.x=e.clientX;mouse.y=e.clie
 window.addEventListener("mousedown",function(e){if(e.button===0)mouse.down=true});
 window.addEventListener("mouseup",function(e){if(e.button===0)mouse.down=false});
 document.getElementById("playBtn").addEventListener("click",startGame);document.getElementById("shopBtn").addEventListener("click",function(){showMenu("shop")});document.getElementById("creditsBtn").addEventListener("click",function(){showMenu("credits")});document.getElementById("shopClose").addEventListener("click",function(){document.getElementById("menuPanel").style.display="none"});document.getElementById("creditsClose").addEventListener("click",function(){document.getElementById("menuPanel").style.display="none"});
-document.getElementById("restart").addEventListener("click",reset);
+document.getElementById("restart").addEventListener("click",reset);document.getElementById("hubReturn").addEventListener("click",function(){gameStarted=false;dead=true;document.getElementById("gameOver").style.display="none";document.getElementById("menuPanel").style.display="none";document.getElementById("hub").style.display="grid";updateHubCoins();});
 if(("ontouchstart" in window)||navigator.maxTouchPoints>0||navigator.msMaxTouchPoints>0)document.documentElement.classList.add("touch-device");
 resize();mouse.x=W/2;mouse.y=H/2;setupMobile();updateHubCoins();
 function loop(now){var dt=last?Math.min(.033,(now-last)/1000):.016;last=now;if(gameStarted){draw();update(dt)}requestAnimationFrame(loop)}
