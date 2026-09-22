@@ -100,103 +100,86 @@ var fx=[];if(player.rapid>0)fx.push("RAPID "+player.rapid.toFixed(1));if(player.
 function setupMobile(){
 var ms=document.getElementById("moveStick"),as=document.getElementById("aimStick");
 var mk=ms.querySelector(".knob"),ak=as.querySelector(".knob");
-var moveActive=false,aimActive=false;
+var moveTouch=null,aimTouch=null;
 
-function stickPoint(e,el,knob,isAim){
-  var r=el.getBoundingClientRect();
-  var cx=r.left+r.width/2,cy=r.top+r.height/2;
-  var maxR=r.width/2-8;
-  var dx=e.clientX-cx,dy=e.clientY-cy;
+function pos(t){return {clientX:t.clientX,clientY:t.clientY}}
+function setStick(t,el,knob,isAim){
+  var r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+  var max=Math.max(10,r.width/2-8),dx=t.clientX-cx,dy=t.clientY-cy;
   var len=Math.hypot(dx,dy);
-  if(len>maxR && len>0){dx=dx/len*maxR;dy=dy/len*maxR}
+  if(len>max){dx=dx/len*max;dy=dy/len*max}
   knob.style.transform="translate("+dx+"px,"+dy+"px)";
   if(isAim){
-    var ax=dx/maxR,ay=dy/maxR;
-    if(Math.abs(ax)<.08&&Math.abs(ay)<.08){mobile.aimX=0;mobile.aimY=0;return}
-    mouse.x=clamp(player.x+ax*350,0,W);
-    mouse.y=clamp(player.y+ay*350,0,H);
-    mobile.aimX=mouse.x;
-    mobile.aimY=mouse.y;
+    var ax=dx/max,ay=dy/max;
+    mouse.x=clamp(player.x+ax*450,0,W);
+    mouse.y=clamp(player.y+ay*450,0,H);
+    mobile.aimX=mouse.x;mobile.aimY=mouse.y;
   }else{
-    mobile.moveX=clamp(dx/maxR,-1,1);
-    mobile.moveY=clamp(dy/maxR,-1,1);
+    mobile.moveX=dx/max;mobile.moveY=dy/max;
   }
 }
-
 function moveStart(e){
   e.preventDefault();e.stopPropagation();
-  moveActive=true;
-  stickPoint(e,ms,mk,false);
+  var t=e.changedTouches?e.changedTouches[0]:e;
+  moveTouch=t.identifier===undefined?null:t.identifier;
+  setStick(pos(t),ms,mk,false);
 }
 function moveMove(e){
-  if(!moveActive)return;
   e.preventDefault();e.stopPropagation();
-  stickPoint(e,ms,mk,false);
+  var t=e.changedTouches?Array.from(e.changedTouches).find(function(x){return x.identifier===moveTouch;}):e;
+  if(t)setStick(pos(t),ms,mk,false);
 }
 function moveEnd(e){
-  if(!moveActive)return;
   e.preventDefault();e.stopPropagation();
-  moveActive=false;mobile.moveX=0;mobile.moveY=0;
-  mk.style.transform="translate(0,0)";
+  var t=e.changedTouches?Array.from(e.changedTouches).find(function(x){return x.identifier===moveTouch;}):e;
+  if(t||moveTouch===null){moveTouch=null;mobile.moveX=0;mobile.moveY=0;mk.style.transform="translate(0,0)"}
 }
-
 function aimStart(e){
   e.preventDefault();e.stopPropagation();
-  aimActive=true;
-  stickPoint(e,as,ak,true);
+  var t=e.changedTouches?e.changedTouches[0]:e;
+  aimTouch=t.identifier===undefined?null:t.identifier;
+  setStick(pos(t),as,ak,true);
 }
 function aimMove(e){
-  if(!aimActive)return;
   e.preventDefault();e.stopPropagation();
-  stickPoint(e,as,ak,true);
+  var t=e.changedTouches?Array.from(e.changedTouches).find(function(x){return x.identifier===aimTouch;}):e;
+  if(t)setStick(pos(t),as,ak,true);
 }
 function aimEnd(e){
-  if(!aimActive)return;
   e.preventDefault();e.stopPropagation();
-  aimActive=false;mobile.aimX=0;mobile.aimY=0;
-  ak.style.transform="translate(0,0)";
+  var t=e.changedTouches?Array.from(e.changedTouches).find(function(x){return x.identifier===aimTouch;}):e;
+  if(t||aimTouch===null){aimTouch=null;mobile.aimX=0;mobile.aimY=0;ak.style.transform="translate(0,0)"}
 }
+ms.addEventListener("touchstart",moveStart,{passive:false});
+ms.addEventListener("touchmove",moveMove,{passive:false});
+ms.addEventListener("touchend",moveEnd,{passive:false});
+ms.addEventListener("touchcancel",moveEnd,{passive:false});
+as.addEventListener("touchstart",aimStart,{passive:false});
+as.addEventListener("touchmove",aimMove,{passive:false});
+as.addEventListener("touchend",aimEnd,{passive:false});
+as.addEventListener("touchcancel",aimEnd,{passive:false});
+ms.addEventListener("pointerdown",moveStart,{passive:false});
+ms.addEventListener("pointermove",moveMove,{passive:false});
+ms.addEventListener("pointerup",moveEnd,{passive:false});
+ms.addEventListener("pointercancel",moveEnd,{passive:false});
+as.addEventListener("pointerdown",aimStart,{passive:false});
+as.addEventListener("pointermove",aimMove,{passive:false});
+as.addEventListener("pointerup",aimEnd,{passive:false});
+as.addEventListener("pointercancel",aimEnd,{passive:false});
 
-// Use pointer events when available, with touch events as a fallback.
-// Do NOT use setPointerCapture: several mobile WebViews handle it badly.
-if(window.PointerEvent){
-  ms.addEventListener("pointerdown",moveStart,{passive:false});
-  ms.addEventListener("pointermove",moveMove,{passive:false});
-  ms.addEventListener("pointerup",moveEnd,{passive:false});
-  ms.addEventListener("pointercancel",moveEnd,{passive:false});
-  as.addEventListener("pointerdown",aimStart,{passive:false});
-  as.addEventListener("pointermove",aimMove,{passive:false});
-  as.addEventListener("pointerup",aimEnd,{passive:false});
-  as.addEventListener("pointercancel",aimEnd,{passive:false});
-}else{
-  function touchToMouse(t){return {clientX:t.clientX,clientY:t.clientY,preventDefault:function(){},stopPropagation:function(){}}}
-  ms.addEventListener("touchstart",function(e){moveStart(touchToMouse(e.changedTouches[0]));},{passive:false});
-  ms.addEventListener("touchmove",function(e){moveMove(touchToMouse(e.changedTouches[0]));},{passive:false});
-  ms.addEventListener("touchend",moveEnd,{passive:false});
-  as.addEventListener("touchstart",function(e){aimStart(touchToMouse(e.changedTouches[0]));},{passive:false});
-  as.addEventListener("touchmove",function(e){aimMove(touchToMouse(e.changedTouches[0]));},{passive:false});
-  as.addEventListener("touchend",aimEnd,{passive:false});
-}
-
-// Buttons
 var fire=document.getElementById("fireBtn");
 function fireOn(e){e.preventDefault();e.stopPropagation();mobile.fire=true}
 function fireOff(e){e.preventDefault();e.stopPropagation();mobile.fire=false}
-fire.addEventListener("pointerdown",fireOn,{passive:false});
-fire.addEventListener("pointerup",fireOff,{passive:false});
-fire.addEventListener("pointercancel",fireOff,{passive:false});
-fire.addEventListener("touchstart",fireOn,{passive:false});
-fire.addEventListener("touchend",fireOff,{passive:false});
-
+["pointerdown","touchstart"].forEach(function(t){fire.addEventListener(t,fireOn,{passive:false})});
+["pointerup","pointercancel","touchend","touchcancel"].forEach(function(t){fire.addEventListener(t,fireOff,{passive:false})});
 document.getElementById("missileBtn").addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();missile()},{passive:false});
 document.getElementById("reloadBtn").addEventListener("pointerdown",function(e){e.preventDefault();e.stopPropagation();if(player)player.ammo=100},{passive:false});
-
 window.addEventListener("blur",function(){
-  moveEnd({preventDefault:function(){},stopPropagation:function(){}});
-  aimEnd({preventDefault:function(){},stopPropagation:function(){}});
-  mobile.fire=false;
+  moveTouch=null;aimTouch=null;mobile.moveX=0;mobile.moveY=0;mobile.aimX=0;mobile.aimY=0;mobile.fire=false;
+  mk.style.transform="translate(0,0)";ak.style.transform="translate(0,0)";
 });
 }
+
 window.addEventListener("resize",resize);
 window.addEventListener("keydown",function(e){keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==="m")missile();if(e.key.toLowerCase()==="r"&&player)player.ammo=100});
 window.addEventListener("keyup",function(e){keys[e.key.toLowerCase()]=false});
