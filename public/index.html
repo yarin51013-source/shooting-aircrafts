@@ -151,7 +151,8 @@ function drawCoolBackground(){
     ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();
   }
 }
-function draw(){\n  drawCoolBackground();
+function draw(){
+  drawCoolBackground();
 ctx.save();if(shake)ctx.translate((Math.random()-.5)*8,(Math.random()-.5)*8);
 ctx.fillStyle="#071522";ctx.fillRect(0,0,W,H);
 var grad=ctx.createRadialGradient(W/2,H/2,60,W/2,H/2,Math.max(W,H)*.8);grad.addColorStop(0,"#163550");grad.addColorStop(1,"#06111d");ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
