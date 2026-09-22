@@ -137,7 +137,7 @@ function initAudio(){
     var AC=window.AudioContext||window.webkitAudioContext;
     if(!AC)return false;
     audioCtx=new AC();
-    musicGain=audioCtx.createGain();musicGain.gain.value=.24;musicGain.connect(audioCtx.destination);
+    musicGain=audioCtx.createGain();musicGain.gain.value=.35;musicGain.connect(audioCtx.destination);
     sfxGain=audioCtx.createGain();sfxGain.gain.value=.38;sfxGain.connect(audioCtx.destination);
   }
   if(audioCtx.state==="suspended")audioCtx.resume();
@@ -185,9 +185,9 @@ function startMusic(){
   function beat(){
     if(!musicOn)return;
     var t=audioCtx.currentTime;
-    tone(bass[i%bass.length],.34,"sawtooth",.035,t,musicGain);
-    tone(lead[i%lead.length],.20,"triangle",.025,t+.04,musicGain);
-    if(i%2===0)tone(lead[(i+3)%lead.length]*2,.08,"square",.012,t+.16,musicGain);
+    tone(bass[i%bass.length],.34,"sawtooth",.085,t,musicGain);
+    tone(lead[i%lead.length],.20,"triangle",.060,t+.04,musicGain);
+    if(i%2===0)tone(lead[(i+3)%lead.length]*2,.08,"square",.025,t+.16,musicGain);
     i++;
   }
   beat();musicTimer=setInterval(beat,240);
@@ -206,7 +206,7 @@ function toggleAudio(){
     btn.textContent="🔇 SOUND OFF";btn.style.background="#555 !important";
   }else{
     if(sfxGain)sfxGain.gain.setTargetAtTime(.38,audioCtx.currentTime,.03);
-    if(musicGain)musicGain.gain.setTargetAtTime(.24,audioCtx.currentTime,.03);
+    if(musicGain)musicGain.gain.setTargetAtTime(.35,audioCtx.currentTime,.03);
     startMusic();
     btn.textContent="🔊 SOUND ON";
   }
