@@ -56,7 +56,7 @@ var mobile={moveX:0,moveY:0,aimX:0,aimY:0,fire:false,moveId:null,aimId:null};
 var gameStarted=false;
 function updateHubCoins(){var n=0;try{n=Math.max(0,parseInt(localStorage.getItem("airCombatCoins")||"0",10)||0)}catch(e){}coins=n;var a=document.getElementById("hubCoins"),b=document.getElementById("shopCoins"),c=document.getElementById("coins");if(a)a.textContent=n;if(b)b.textContent=n;if(c)c.textContent=n}
 function showMenu(panel){document.getElementById("menuPanel").style.display="grid";document.getElementById("shopPanel").style.display=panel==="shop"?"block":"none";document.getElementById("creditsPanel").style.display=panel==="credits"?"block":"none";updateHubCoins()}
-function startGame(){gameStarted=true;document.getElementById("hub").style.display="none";document.getElementById("menuPanel").style.display="none";reset();draw();if(typeof startMusic==="function")startMusic()}
+function startGame(){reset();gameStarted=true;document.getElementById("hub").style.display="none";document.getElementById("menuPanel").style.display="none";draw();if(typeof startMusic==="function")startMusic()}
 
 
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -79,6 +79,7 @@ function missile(){if(dead||player.missiles<=0)return;var target=null,best=Infin
 function enemyShoot(e){var a=Math.atan2(player.y-e.y,player.x-e.x);bullets.push({x:e.x,y:e.y,vx:Math.cos(a)*260,vy:Math.sin(a)*260,life:3,damage:12,enemy:true,missile:false})}
 function collectPower(x){sfxPickup();if(x.type==="REPAIR")player.hp=clamp(player.hp+35,0,100);if(x.type==="RAPID")player.rapid=8;if(x.type==="EXPLOSIVE")player.explosive=8;if(x.type==="MISSILES")player.missiles+=3;if(x.type==="SHIELD")player.shield=7;particlesAt(x.x,x.y,20,"#ffd45a")}
 function update(dt){
+if(!gameStarted||!player)return;
 if(dead)return;
 fireCooldown=Math.max(0,fireCooldown-dt);player.rapid=Math.max(0,player.rapid-dt);player.explosive=Math.max(0,player.explosive-dt);player.shield=Math.max(0,player.shield-dt);shake=Math.max(0,shake-dt);
 var ax=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),ay=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
