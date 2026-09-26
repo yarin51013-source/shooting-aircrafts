@@ -29,7 +29,8 @@ canvas{display:block;width:100vw;height:100vh;background:#071522;cursor:crosshai
 .hubTitle{font-size:clamp(42px,10vw,72px);margin:0 0 4px;font-weight:900;letter-spacing:4px;text-shadow:0 4px 20px #000}
 .hubSub{color:#9fc4d8;margin:0 0 26px;letter-spacing:3px}.hubCoins{font-size:18px;margin-bottom:22px}.hubBtn{display:block;width:100%;box-sizing:border-box;margin:12px 0;padding:15px;font-size:18px;border:1px solid #5fa8d0;background:#126fa8;box-shadow:0 6px 18px #0006}.hubBtn:hover{background:#168ed0}.hubSmall{font-size:13px;color:#7fa5b9;margin-top:22px}.skinCard{padding:14px;margin:10px 0;background:#0b2030;border:1px solid #315b78;border-radius:14px;text-align:left}.skinName{font-size:18px;font-weight:900}.skinPrice{color:#ffd45a;margin:5px 0}.skinBtn{width:100%;padding:10px;margin-top:6px}
 #menuPanel{display:none;position:fixed;inset:0;z-index:210;place-items:center;background:#0009}.menuBox{width:min(430px,calc(100vw - 36px));max-height:80vh;overflow:auto;padding:28px;background:#071522;border:1px solid #46708b;border-radius:18px;text-align:center;box-shadow:0 20px 60px #000b}.menuBox h2{margin-top:0}.closeBtn{background:#344d5d;margin-top:16px}.gameOverButtons{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:18px}.gameOverButtons button{margin:0 !important;min-width:120px}
-@keyframes rainbowText{to{background-position:300% center}}\n</style></head><body>
+@keyframes rainbowText{to{background-position:300% center}}
+</style></head><body>
 <canvas id="game"></canvas><div id="hub"><div class="hubBox"><h1 class="hubTitle">AIR COMBAT</h1><p class="hubSub">SKY WARRIOR</p><div class="hubCoins">🪙 <b id="hubCoins">0</b> COINS</div><button class="hubBtn" id="playBtn">▶ PLAY</button><button class="hubBtn" id="shopBtn">🛒 SHOP</button><button class="hubBtn" id="creditsBtn">ℹ CREDITS</button><button class="hubBtn" id="devLoginBtn">🔐 DEVELOPER LOGIN</button><div class="hubSmall">PC + MOBILE · AIR COMBAT</div></div></div><div id="menuPanel"><div class="menuBox" id="shopPanel"><h2>🛒 SHOP</h2><p>Coins: 🪙 <b id="shopCoins">0</b></p><p style="color:#9fc4d8">🔥 Rare aircraft skins — very expensive!</p><div id="skinList"></div><button class="hubBtn closeBtn" id="shopClose">BACK</button></div><div class="menuBox" id="creditsPanel" style="display:none"><h2>ℹ CREDITS</h2><p><b>Air Combat</b></p><p>Built for PC and mobile.</p><p style="font-size:18px;font-weight:900;color:#ffd45a;margin:18px 0">CREDIT TO YARIN KOTLER</p><p>Aircraft combat, enemies, upgrades and persistent coins.</p><button class="hubBtn closeBtn" id="creditsClose">BACK</button></div></div>
 <div class="hud left">❤️ HP <b id="hp">100</b><br>⚡ SPEED <b id="speed">0</b> · ALT <b id="alt">1200</b><br>🔫 AMMO <b id="ammo">100</b> · 🚀 MISSILES <b id="missiles">4</b></div>
 <div class="hud right">🏆 SCORE <b id="score">0</b><br>🪙 TOTAL COINS <b id="coins">0</b><br><b id="effect">READY</b></div><button id="audioBtn" style="display:block !important;position:fixed !important;top:12px !important;left:50% !important;transform:translateX(-50%) !important;z-index:9999 !important;pointer-events:auto !important;background:#168ce0 !important;color:#fff !important;border:2px solid #fff !important;border-radius:12px !important;padding:10px 18px !important;font:bold 15px Arial !important;box-shadow:0 4px 18px #000 !important">🔊 SOUND ON</button>
@@ -448,7 +449,19 @@ window.addEventListener("blur",function(){
 }
 
 window.addEventListener("resize",resize);
-window.addEventListener("keydown",function(e){\n  var k=e.key.toLowerCase();\n  if(k==="w"||k==="a"||k==="s"||k==="d"||k==="arrowup"||k==="arrowdown"||k==="arrowleft"||k==="arrowright"){keys[k]=true;e.preventDefault()}\n  if(e.code==="KeyW")keys.w=true;if(e.code==="KeyA")keys.a=true;if(e.code==="KeyS")keys.s=true;if(e.code==="KeyD")keys.d=true;\n  if(e.code==="ArrowUp")keys.arrowup=true;if(e.code==="ArrowDown")keys.arrowdown=true;if(e.code==="ArrowLeft")keys.arrowleft=true;if(e.code==="ArrowRight")keys.arrowright=true;\n  if(k==="m")missile();if(k==="r"&&player)player.ammo=100;\n});\nwindow.addEventListener("keyup",function(e){\n  var k=e.key.toLowerCase();\n  keys[k]=false;\n  if(e.code==="KeyW")keys.w=false;if(e.code==="KeyA")keys.a=false;if(e.code==="KeyS")keys.s=false;if(e.code==="KeyD")keys.d=false;\n  if(e.code==="ArrowUp")keys.arrowup=false;if(e.code==="ArrowDown")keys.arrowdown=false;if(e.code==="ArrowLeft")keys.arrowleft=false;if(e.code==="ArrowRight")keys.arrowright=false;\n});
+window.addEventListener("keydown",function(e){
+  var k=e.key.toLowerCase();
+  if(k==="w"||k==="a"||k==="s"||k==="d"||k==="arrowup"||k==="arrowdown"||k==="arrowleft"||k==="arrowright"){keys[k]=true;e.preventDefault()}
+  if(e.code==="KeyW")keys.w=true;if(e.code==="KeyA")keys.a=true;if(e.code==="KeyS")keys.s=true;if(e.code==="KeyD")keys.d=true;
+  if(e.code==="ArrowUp")keys.arrowup=true;if(e.code==="ArrowDown")keys.arrowdown=true;if(e.code==="ArrowLeft")keys.arrowleft=true;if(e.code==="ArrowRight")keys.arrowright=true;
+  if(k==="m")missile();if(k==="r"&&player)player.ammo=100;
+});
+window.addEventListener("keyup",function(e){
+  var k=e.key.toLowerCase();
+  keys[k]=false;
+  if(e.code==="KeyW")keys.w=false;if(e.code==="KeyA")keys.a=false;if(e.code==="KeyS")keys.s=false;if(e.code==="KeyD")keys.d=false;
+  if(e.code==="ArrowUp")keys.arrowup=false;if(e.code==="ArrowDown")keys.arrowdown=false;if(e.code==="ArrowLeft")keys.arrowleft=false;if(e.code==="ArrowRight")keys.arrowright=false;
+});
 window.addEventListener("mousemove",function(e){mouse.x=e.clientX;mouse.y=e.clientY});
 window.addEventListener("mousedown",function(e){if(e.button===0)mouse.down=true});
 window.addEventListener("mouseup",function(e){if(e.button===0)mouse.down=false});
