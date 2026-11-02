@@ -67,7 +67,7 @@ a{color:#7dd3fc}
 const httpServer=http.createServer(app);
 const wss=new WebSocketServer({server:httpServer,path:'/street-legends'});
 const players=new Map();
-function cleanName(value){return String(value||'Player').replace(/[<>\\u0000-\\u001f]/g,'').trim().slice(0,18)||'Player';}
+function cleanName(value){return String(value||'Player').replace(/[<>]/g,'').replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,18)||'Player';}
 function send(ws,data){if(ws.readyState===1)ws.send(JSON.stringify(data));}
 wss.on('connection',ws=>{
  const id=crypto.randomUUID();
