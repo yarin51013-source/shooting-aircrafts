@@ -356,16 +356,25 @@ function playSfx(kind){
  if(kind==='cash'){osc.type='sine';osc.frequency.setValueAtTime(880,now);osc.frequency.exponentialRampToValueAtTime(1320,now+.12);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.18,now+.015);gain.gain.exponentialRampToValueAtTime(.0001,now+.28);osc.start(now);osc.stop(now+.3);}
  else if(kind==='nitro'){osc.type='sawtooth';osc.frequency.setValueAtTime(115,now);osc.frequency.exponentialRampToValueAtTime(48,now+.42);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.2,now+.035);gain.gain.exponentialRampToValueAtTime(.0001,now+.48);osc.start(now);osc.stop(now+.5);}
  else if(kind==='crash'){
-  // A layered impact: deep body thump plus a short, filtered metal-and-gravel crunch.
-  osc.type='triangle';osc.frequency.setValueAtTime(78,now);osc.frequency.exponentialRampToValueAtTime(31,now+.22);
-  gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.24,now+.008);gain.gain.exponentialRampToValueAtTime(.0001,now+.29);
-  osc.start(now);osc.stop(now+.3);
-  const length=Math.floor(audioCtx.sampleRate*.34),buffer=audioCtx.createBuffer(1,length,audioCtx.sampleRate),data=buffer.getChannelData(0);
-  for(let i=0;i<length;i++){const fade=1-i/length;data[i]=(Math.random()*2-1)*fade*fade;}
-  const noise=audioCtx.createBufferSource();noise.buffer=buffer;
-  const filter=audioCtx.createBiquadFilter();filter.type='lowpass';filter.frequency.setValueAtTime(1250,now);filter.frequency.exponentialRampToValueAtTime(260,now+.3);
-  const crunch=audioCtx.createGain();crunch.gain.setValueAtTime(.0001,now);crunch.gain.exponentialRampToValueAtTime(.2,now+.006);crunch.gain.exponentialRampToValueAtTime(.0001,now+.34);
-  noise.connect(filter);filter.connect(crunch);crunch.connect(audioCtx.destination);noise.start(now);noise.stop(now+.35);
+  // Heavy layered collision: sub-bass thud, sharp metal hit, then a short debris crunch.
+  osc.type='sawtooth';osc.frequency.setValueAtTime(58,now);osc.frequency.exponentialRampToValueAtTime(24,now+.38);
+  gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.42,now+.006);gain.gain.exponentialRampToValueAtTime(.0001,now+.48);
+  osc.start(now);osc.stop(now+.5);
+  const makeImpactNoise=(duration,volume,high,low,delay)=>{
+   const length=Math.floor(audioCtx.sampleRate*duration),buffer=audioCtx.createBuffer(1,length,audioCtx.sampleRate),data=buffer.getChannelData(0);
+   for(let i=0;i<length;i++){const t=i/length;data[i]=(Math.random()*2-1)*Math.pow(1-t,2.4);}
+   const source=audioCtx.createBufferSource();source.buffer=buffer;
+   const filter=audioCtx.createBiquadFilter();filter.type='lowpass';filter.frequency.setValueAtTime(high,now+delay);filter.frequency.exponentialRampToValueAtTime(low,now+delay+duration);
+   const envelope=audioCtx.createGain();envelope.gain.setValueAtTime(.0001,now+delay);envelope.gain.exponentialRampToValueAtTime(volume,now+delay+.004);envelope.gain.exponentialRampToValueAtTime(.0001,now+delay+duration);
+   source.connect(filter);filter.connect(envelope);envelope.connect(audioCtx.destination);source.start(now+delay);source.stop(now+delay+duration);
+  };
+  makeImpactNoise(.42,.34,2400,180,0); // metallic body slam
+  makeImpactNoise(.24,.2,5200,700,.035); // sharp crack
+  const tail=audioCtx.createOscillator(),tailGain=audioCtx.createGain();tail.type='triangle';
+  tail.frequency.setValueAtTime(92,now+.11);tail.frequency.exponentialRampToValueAtTime(38,now+.62);
+  tailGain.gain.setValueAtTime(.0001,now+.11);tailGain.gain.exponentialRampToValueAtTime(.24,now+.13);tailGain.gain.exponentialRampToValueAtTime(.0001,now+.64);
+  tail.connect(tailGain);tailGain.connect(audioCtx.destination);tail.start(now+.11);tail.stop(now+.66);
+ }
  }
  else if(kind==='shift'){osc.type='triangle';osc.frequency.setValueAtTime(190,now);osc.frequency.exponentialRampToValueAtTime(390,now+.08);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.07,now+.01);gain.gain.exponentialRampToValueAtTime(.0001,now+.13);osc.start(now);osc.stop(now+.15);}
 }
