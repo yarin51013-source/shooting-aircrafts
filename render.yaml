@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: street-legends
+    runtime: static
+    branch: main
+    buildCommand: echo "No build step required"
+    staticPublishPath: ./docs/street-legends
