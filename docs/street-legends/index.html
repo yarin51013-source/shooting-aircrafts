@@ -402,7 +402,7 @@ function updateAudio(){
  // Simulated automatic transmission: revs climb under throttle, then fall on each upshift.
  const gear=Math.min(6,Math.floor(speed/9)+1);
  const gearProgress=Math.min(1,(speed-(gear-1)*9)/9);
- const load=throttle?1:(reverse?.48:.12);
+ const load=throttle?1:(reverse ? .48 : .12);
  const revving=throttle*Math.max(0,1-speed/28);
  const rpm=29+gearProgress*66+load*24+revving*52+(boost?17:0);
  const now=audioCtx.currentTime;
