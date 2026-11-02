@@ -1,4 +1,4 @@
-const express=require('express'),crypto=require('crypto'),bcrypt=require('bcryptjs'),fs=require('fs'),path=require('path');
+const express=require('express'),crypto=require('crypto'),bcrypt=require('bcryptjs'),fs=require('fs'),path=require('path'),http=require('http'),{WebSocketServer}=require('ws');
 
 const app=express();
 const PORT=process.env.PORT||3000;
@@ -63,4 +63,32 @@ a{color:#7dd3fc}
 <p>For a serious public launch, use a managed database, secure sessions, a defined retention policy, and a complete privacy/compliance review.</p>
 <a href="/">Back</a>`));
 
-app.listen(PORT,()=>console.log('Air Combat on '+PORT));
+
+const httpServer=http.createServer(app);
+const wss=new WebSocketServer({server:httpServer,path:'/street-legends'});
+const players=new Map();
+function cleanName(value){return String(value||'Player').replace(/[<>\\u0000-\\u001f]/g,'').trim().slice(0,18)||'Player';}
+function send(ws,data){if(ws.readyState===1)ws.send(JSON.stringify(data));}
+wss.on('connection',ws=>{
+ const id=crypto.randomUUID();
+ const player={id,name:'Player',x:0,z:12,heading:0,color:0xe52b35};
+ players.set(id,player);
+ send(ws,{type:'welcome',id,players:[...players.values()].filter(p=>p.id!==id)});
+ ws.on('message',raw=>{
+  let msg;try{msg=JSON.parse(raw.toString())}catch{return}
+  if(msg.type==='name'){player.name=cleanName(msg.name);return;}
+  if(msg.type==='state'){
+   const x=Number(msg.x),z=Number(msg.z),heading=Number(msg.heading);
+   if(Number.isFinite(x)&&Number.isFinite(z)&&Number.isFinite(heading)){
+    player.x=Math.max(-2000,Math.min(2000,x));player.z=Math.max(-2000,Math.min(2000,z));player.heading=heading;
+   }
+  }
+ });
+ ws.on('close',()=>players.delete(id));
+ ws.on('error',()=>players.delete(id));
+});
+setInterval(()=>{
+ const snapshot=JSON.stringify({type:'players',players:[...players.values()]});
+ for(const client of wss.clients)if(client.readyState===1)client.send(snapshot);
+},100);
+httpServer.listen(PORT,'0.0.0.0',()=>console.log('Air Combat + Street Legends multiplayer on '+PORT));
