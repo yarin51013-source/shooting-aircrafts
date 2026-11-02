@@ -11,7 +11,7 @@
 #mission{position:absolute;top:18px;right:20px;padding:13px 16px;width:230px}.small{font-size:10px;color:#ffbd4a;letter-spacing:2px;font-weight:bold}#mission strong{display:block;font-size:15px;margin-top:5px}#mission p{margin:5px 0 0;color:#b9c4cf;font-size:11px;line-height:1.4}
 #help{position:absolute;left:20px;bottom:18px;padding:11px 14px;font-size:11px;line-height:1.8;color:#d4dce5}#help b{color:#fff}
 #speedbox{position:absolute;right:20px;bottom:18px;padding:12px 18px;min-width:165px;text-align:right}#speed{font-size:52px;font-weight:900;line-height:1;letter-spacing:-2px}#unit{font-size:11px;color:#aab6c4;letter-spacing:2px}#gear{font-size:12px;color:#ffbd4a;margin-top:6px}
-#lightToggle{position:absolute;right:205px;bottom:28px;pointer-events:auto;margin:0;padding:11px 15px;border:1px solid #ffffff55;border-radius:10px;background:linear-gradient(120deg,#eaf5ff,#9fc8e8);color:#10202d;font-size:12px;font-weight:900;letter-spacing:.7px;box-shadow:0 5px 20px #0007}#lightToggle.off{background:linear-gradient(120deg,#293744,#111a23);color:#d4dde5}
+#soundToggle{position:absolute;left:20px;top:164px;pointer-events:auto;padding:8px 11px;border:1px solid #ffffff55;border-radius:9px;background:linear-gradient(120deg,#263b4c,#101b27);color:#fff;font-size:11px;font-weight:900;letter-spacing:.7px;box-shadow:0 4px 15px #0006}#soundToggle.off{background:#20242a;color:#aab3bc}#lightToggle{position:absolute;right:205px;bottom:28px;pointer-events:auto;margin:0;padding:11px 15px;border:1px solid #ffffff55;border-radius:10px;background:linear-gradient(120deg,#eaf5ff,#9fc8e8);color:#10202d;font-size:12px;font-weight:900;letter-spacing:.7px;box-shadow:0 5px 20px #0007}#lightToggle.off{background:linear-gradient(120deg,#293744,#111a23);color:#d4dde5}
 #minimap{position:absolute;left:20px;top:117px;width:132px;height:132px;border-radius:50%;border:2px solid #ffffff88;background:#14202b;box-shadow:0 5px 22px #0008}
 #toast{position:absolute;top:23%;left:50%;transform:translate(-50%,-50%);font-size:20px;font-weight:900;letter-spacing:2px;text-shadow:0 3px 15px #000;opacity:0;transition:opacity .2s}
 #overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(120deg,#040a12e8,#040a1288);pointer-events:auto}
@@ -28,7 +28,7 @@ button{border:0;border-radius:10px;padding:14px 22px;background:linear-gradient(
 <body>
 <canvas id="game"></canvas>
 <div id="hud">
- <div id="brand" class="panel">STREET <span>LEGENDS</span></div><div id="cash">$ <span id="money">0</span></div>
+ <div id="brand" class="panel">STREET <span>LEGENDS</span></div><div id="cash">$ <span id="money">0</span></div><button id="soundToggle" type="button">SOUND: ON</button>
  <canvas id="minimap" width="132" height="132"></canvas>
  <div id="mission" class="panel"><div class="small">FREE ROAM</div><strong>Explore the city</strong><p>Find glowing cash rings, cruise the streets and make the city yours.</p></div>
  <div id="help" class="panel"><b>WASD / ARROWS</b> Drive & steer<br><b>SHIFT</b> Nitro &nbsp; <b>SPACE</b> Handbrake<br><b>C</b> Camera &nbsp; <b>R</b> Reset car<br><b>G</b> Garage &nbsp; <b>ESC</b> Pause</div>
@@ -330,6 +330,53 @@ for(let i=0;i<28;i++)makePedestrian(i);
 const pickups=[],coinMat=new THREE.MeshStandardMaterial({color:0xffc12e,emissive:0x8b4b00,metalness:.75,roughness:.2});
 for(let i=0;i<44;i++){const p=new THREE.Mesh(new THREE.TorusGeometry(.8,.17,10,24),coinMat);p.position.set((Math.floor(Math.random()*8)-4)*90+(Math.random()-.5)*42,1.6,(Math.floor(Math.random()*8)-4)*90+(Math.random()-.5)*42);scene.add(p);pickups.push(p);}
 const keys={};let running=false,paused=false,nitroPrimed=false,velocity=0,steer=0,heading=0,driftAngle=0,money=0,camMode=0,health=100;
+// Procedural audio: no downloads or extra assets. Audio starts after the player's first click.
+let audioCtx=null,engineOsc=null,engineOsc2=null,engineGain=null,engineFilter=null,tireNoise=null,tireGain=null,audioEnabled=true,nitroWasOn=false;
+function initAudio(){
+ if(audioCtx){if(audioCtx.state==='suspended')audioCtx.resume();return;}
+ const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+ audioCtx=new AC();
+ engineOsc=audioCtx.createOscillator();engineOsc.type='sawtooth';
+ engineOsc2=audioCtx.createOscillator();engineOsc2.type='triangle';
+ engineFilter=audioCtx.createBiquadFilter();engineFilter.type='lowpass';engineFilter.frequency.value=420;
+ engineGain=audioCtx.createGain();engineGain.gain.value=0;
+ const engineMix=audioCtx.createGain();engineMix.gain.value=.23;
+ engineOsc.connect(engineFilter);engineOsc2.connect(engineFilter);engineFilter.connect(engineMix);engineMix.connect(engineGain);engineGain.connect(audioCtx.destination);
+ engineOsc.start();engineOsc2.start();
+ const buffer=audioCtx.createBuffer(1,audioCtx.sampleRate*2,audioCtx.sampleRate),data=buffer.getChannelData(0);
+ for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;
+ tireNoise=audioCtx.createBufferSource();tireNoise.buffer=buffer;tireNoise.loop=true;
+ const tireFilter=audioCtx.createBiquadFilter();tireFilter.type='bandpass';tireFilter.frequency.value=1450;
+ tireGain=audioCtx.createGain();tireGain.gain.value=0;tireNoise.connect(tireFilter);tireFilter.connect(tireGain);tireGain.connect(audioCtx.destination);tireNoise.start();
+}
+function playSfx(kind){
+ if(!audioEnabled)return;initAudio();if(!audioCtx)return;
+ const now=audioCtx.currentTime,osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
+ osc.connect(gain);gain.connect(audioCtx.destination);
+ if(kind==='cash'){osc.type='sine';osc.frequency.setValueAtTime(880,now);osc.frequency.exponentialRampToValueAtTime(1320,now+.12);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.18,now+.015);gain.gain.exponentialRampToValueAtTime(.0001,now+.28);osc.start(now);osc.stop(now+.3);}
+ else if(kind==='nitro'){osc.type='sawtooth';osc.frequency.setValueAtTime(115,now);osc.frequency.exponentialRampToValueAtTime(48,now+.42);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.2,now+.035);gain.gain.exponentialRampToValueAtTime(.0001,now+.48);osc.start(now);osc.stop(now+.5);}
+ else if(kind==='crash'){osc.type='square';osc.frequency.setValueAtTime(95,now);osc.frequency.exponentialRampToValueAtTime(28,now+.24);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.28,now+.012);gain.gain.exponentialRampToValueAtTime(.0001,now+.32);osc.start(now);osc.stop(now+.34);}
+ else if(kind==='shift'){osc.type='triangle';osc.frequency.setValueAtTime(190,now);osc.frequency.exponentialRampToValueAtTime(390,now+.08);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.07,now+.01);gain.gain.exponentialRampToValueAtTime(.0001,now+.13);osc.start(now);osc.stop(now+.15);}
+}
+function updateAudio(){
+ if(!audioCtx||!engineGain)return;
+ const speed=Math.abs(velocity),active=audioEnabled&&running&&!paused;
+ const rpm=65+speed*5.2+(keys.KeyW||keys.w||keys.arrowup?90:0);
+ engineOsc.frequency.setTargetAtTime(rpm, audioCtx.currentTime,.06);
+ engineOsc2.frequency.setTargetAtTime(rpm*1.51,audioCtx.currentTime,.07);
+ engineFilter.frequency.setTargetAtTime(260+speed*24,audioCtx.currentTime,.08);
+ engineGain.gain.setTargetAtTime(active?.075+Math.min(speed/70,.9)*.13:0,audioCtx.currentTime,.12);
+ const drifting=active&&keys[' ']&&speed>17&&(keys.KeyA||keys.a||keys.arrowleft||keys.KeyD||keys.d||keys.arrowright);
+ tireGain.gain.setTargetAtTime(drifting?.12:0,audioCtx.currentTime,.09);
+ const boost=keys.ShiftLeft||keys.ShiftRight||keys.shift;
+ if(active&&nitroPrimed&&boost&&speed>5&&!nitroWasOn)playSfx('nitro');
+ nitroWasOn=!!(active&&nitroPrimed&&boost&&speed>5);
+}
+function setSound(on){
+ audioEnabled=on;const b=document.querySelector('#soundToggle');b.textContent='SOUND: '+(on?'ON':'OFF');b.classList.toggle('off',!on);
+ if(on)initAudio();else{nitroWasOn=false;if(audioCtx&&engineGain){engineGain.gain.setTargetAtTime(0,audioCtx.currentTime,.04);tireGain.gain.setTargetAtTime(0,audioCtx.currentTime,.04);}}
+}
+document.querySelector('#soundToggle').addEventListener('click',()=>setSound(!audioEnabled));
 addEventListener('keydown',e=>{keys[e.code]=true;keys[e.key.toLowerCase()]=true;if((e.code==='ShiftLeft'||e.code==='ShiftRight')&&running&&!paused)nitroPrimed=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)||['KeyW','KeyA','KeyS','KeyD','ShiftLeft','ShiftRight','Space'].includes(e.code))e.preventDefault();
  if(e.key.toLowerCase()==='c')camMode=(camMode+1)%3;if(e.key.toLowerCase()==='r')resetCar();if(e.key.toLowerCase()==='g'&&running)openGarage();if(e.key==='Escape'&&running)togglePause();});
 addEventListener('keyup',e=>{keys[e.code]=false;keys[e.key.toLowerCase()]=false;});
@@ -342,7 +389,7 @@ function setLights(on){lightsOn=on;const b=document.querySelector('#lightToggle'
 document.querySelector('#lightToggle').addEventListener('click',()=>setLights(!lightsOn));
 document.querySelector('#closeGarage').onclick=()=>{document.querySelector('#garage').style.display='none';paused=false;};
 function togglePause(){paused=!paused;document.querySelector('#overlay').style.display=paused?'flex':'none';document.querySelector('#menu h1').innerHTML=paused?'GAME<br><span>PAUSED</span>':'STREET<br><span>LEGENDS</span>';document.querySelector('#menu p').textContent=paused?'Take a breather. The city will be waiting.':'Take the wheel of your sports car and explore the city.';document.querySelector('#start').textContent=paused?'RESUME DRIVING →':'START DRIVING →';}
-document.querySelector('#start').onclick=()=>{hideNitroFlames();nitroPrimed=false;keys.ShiftLeft=false;keys.ShiftRight=false;keys.shift=false;velocity=0;driftAngle=0;running=true;paused=false;document.querySelector('#overlay').style.display='none';};
+document.querySelector('#start').onclick=()=>{initAudio();nitroPrimed=false;keys.ShiftLeft=false;keys.ShiftRight=false;keys.shift=false;velocity=0;driftAngle=0;running=true;paused=false;document.querySelector('#overlay').style.display='none';};
 function update(dt){
  if(!running||paused){hideNitroFlames();return;}
  const forward=keys.KeyW||keys.w||keys.arrowup,back=keys.KeyS||keys.s||keys.arrowdown,left=keys.KeyA||keys.a||keys.arrowleft,right=keys.KeyD||keys.d||keys.arrowright,boost=keys.ShiftLeft||keys.ShiftRight||keys.shift;
@@ -378,8 +425,8 @@ function update(dt){
  const travelHeading=heading-driftAngle;
  car.root.position.x-=Math.sin(travelHeading)*velocity*dt;car.root.position.z-=Math.cos(travelHeading)*velocity*dt;
  car.root.position.x=THREE.MathUtils.clamp(car.root.position.x,-475,475);car.root.position.z=THREE.MathUtils.clamp(car.root.position.z,-475,475);
- for(const building of buildings){const b=building.mesh;const hitX=building.width/2+1.2,hitZ=building.depth/2+2.3;if(Math.abs(car.root.position.x-b.position.x)<hitX&&Math.abs(car.root.position.z-b.position.z)<hitZ){car.root.position.copy(old);velocity*=-.25;health=Math.max(0,health-7);burst(car.root.position.clone().add(new THREE.Vector3(0,1,0)),0xffa33b,18);toast('CRASH!');break;}}
- for(const p of pickups){p.rotation.y+=dt*1.6;if(p.visible&&p.position.distanceTo(car.root.position)<4){p.visible=false;money+=100;document.querySelector('#money').textContent=money.toLocaleString();toast('+$100 CASH');}}
+ for(const building of buildings){const b=building.mesh;const hitX=building.width/2+1.2,hitZ=building.depth/2+2.3;if(Math.abs(car.root.position.x-b.position.x)<hitX&&Math.abs(car.root.position.z-b.position.z)<hitZ){car.root.position.copy(old);velocity*=-.25;health=Math.max(0,health-7);burst(car.root.position.clone().add(new THREE.Vector3(0,1,0)),0xffa33b,18);playSfx('crash');toast('CRASH!');break;}}
+ for(const p of pickups){p.rotation.y+=dt*1.6;if(p.visible&&p.position.distanceTo(car.root.position)<4){p.visible=false;money+=100;document.querySelector('#money').textContent=money.toLocaleString();playSfx('cash');toast('+$100 CASH');}}
  for(const t of traffic){
   t.coord+=t.direction*t.speed*dt;
   if(t.coord>460)t.coord=-460;if(t.coord< -460)t.coord=460;
@@ -401,6 +448,7 @@ function update(dt){
  if(health<=0){velocity=0;toast('ENGINE DAMAGED — PRESS R');}
  document.querySelector('#speed').textContent=String(Math.round(Math.abs(velocity)*3.6)).padStart(3,'0');
  document.querySelector('#gear').textContent='GEAR '+(Math.abs(velocity)<1?'N':Math.min(6,Math.floor(Math.abs(velocity)/9)+1))+(boost?'  •  NITRO':'');
+ updateAudio();
  // Small twin flames appear only while nitro is engaged.
 }
 const mini=document.querySelector('#minimap'),ctx=mini.getContext('2d');
