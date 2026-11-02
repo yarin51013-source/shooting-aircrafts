@@ -49,11 +49,29 @@ scene.add(new THREE.HemisphereLight(0xddeeff,0x68745e,2));
 const sun=new THREE.DirectionalLight(0xffefcf,3);sun.position.set(-90,150,80);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-180;sun.shadow.camera.right=180;sun.shadow.camera.top=180;sun.shadow.camera.bottom=-180;scene.add(sun);
 const mat=(color,rough=.8,metal=0)=>new THREE.MeshStandardMaterial({color,roughness:rough,metalness:metal});
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(1100,1100),mat(0x64835a));ground.rotation.x=-Math.PI/2;ground.position.y=-.2;ground.receiveShadow=true;scene.add(ground);
-const roadMat=mat(0x292d32,.96),lineMat=mat(0xe7e1c8),buildingMats=[0x798995,0x9b9a91,0x566b7b,0xb1a38e,0x657a83,0x777d87].map(c=>mat(c,.86));
+const roadMat=mat(0x292d32,.96),lineMat=mat(0xe7e1c8),sidewalkMat=mat(0x9a9b96,.94),curbMat=mat(0xc5c3bb,.9),buildingMats=[0x798995,0x9b9a91,0x566b7b,0xb1a38e,0x657a83,0x777d87].map(c=>mat(c,.86));
 function addBox(w,h,d,material,x,y,z,shadow=true){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=shadow;m.receiveShadow=true;scene.add(m);return m;}
 for(let i=-4;i<=4;i++){
- addBox(17,.12,1000,roadMat,i*90,-.08,0,false);addBox(1000,.12,17,roadMat,0,-.08,i*90,false);
- for(let k=-27;k<=27;k+=2){addBox(.18,.025,5,lineMat,i*90,.005,k*18,false);addBox(5,.025,.18,lineMat,k*18,.006,i*90,false);}
+ const road=i*90;
+ addBox(17,.12,1000,roadMat,road,-.08,0,false);addBox(1000,.12,17,roadMat,0,-.08,road,false);
+ // Raised sidewalks and curb edges make the street grid read like a real city.
+ for(const side of [-1,1]){
+  addBox(2.5,.18,1000,sidewalkMat,road+side*9.75,-.005,0,false);
+  addBox(1000,.18,2.5,sidewalkMat,0,-.005,road+side*9.75,false);
+  addBox(.22,.2,1000,curbMat,road+side*8.62,.015,0,false);
+  addBox(1000,.2,.22,curbMat,0,.015,road+side*8.62,false);
+ }
+ // Broken center lines and short zebra crossings at junctions.
+ for(let k=-27;k<=27;k+=2){addBox(.16,.025,5,lineMat,road,.005,k*18,false);addBox(5,.025,.16,lineMat,k*18,.006,road,false);}
+ for(let k=-4;k<=4;k++){
+  const cross=k*90;
+  for(let stripe=-6;stripe<=6;stripe+=2){
+   addBox(1.15,.035,.62,lineMat,road+stripe,.035,cross-11,false);
+   addBox(1.15,.035,.62,lineMat,road+stripe,.035,cross+11,false);
+   addBox(.62,.035,1.15,lineMat,cross-11,.035,road+stripe,false);
+   addBox(.62,.035,1.15,lineMat,cross+11,.035,road+stripe,false);
+  }
+ }
 }
 const buildings=[];
 const winMat=new THREE.MeshStandardMaterial({color:0xb9d6df,emissive:0x243a45,roughness:.35});
@@ -61,7 +79,32 @@ for(let gx=-4;gx<4;gx++)for(let gz=-4;gz<4;gz++)for(let n=0;n<5;n++){
  let x=gx*90+(Math.random()-.5)*57,z=gz*90+(Math.random()-.5)*57;if(Math.abs(x%90)<14||Math.abs(z%90)<14)continue;
  let w=10+Math.random()*15,d=10+Math.random()*15,h=14+Math.random()*62;
  const b=addBox(w,h,d,buildingMats[Math.floor(Math.random()*buildingMats.length)],x,h/2-.1,z);buildings.push(b);
- for(let y=4;y<h-3;y+=5)addBox(w*.72,.8,.08,winMat,x,y,z+d/2+.045,false);
+ // Repeating window bays, darker recesses and a roof parapet give buildings a detailed facade.
+ for(let y=4;y<h-3;y+=5){
+  for(let xx=-w*.3;xx<=w*.3;xx+=3.8)addBox(1.35,1.85,.075,winMat,x+xx,y,z+d/2+.07,false);
+  for(let zz=-d*.28;zz<=d*.28;zz+=3.8)addBox(.075,1.85,1.35,winMat,x+w/2+.055,y,z+zz,false);
+ }
+ addBox(w+.35,.42,d+.35,buildingMats[2],x,h-.05,z,false);
+ addBox(w*.26,2,.12,mat(0x343b42,.8),x-w*.3,1.1,z+d/2+.09,false);
+}
+// Street furniture: lamps, traffic signals and a few small roadside details.
+const poleMat=mat(0x3c454b,.55,.65),lampMat=new THREE.MeshStandardMaterial({color:0xffe4a2,emissive:0xffb94d,emissiveIntensity:1.5}),signalRed=new THREE.MeshStandardMaterial({color:0xff332b,emissive:0x8b100b}),signalAmber=new THREE.MeshStandardMaterial({color:0xffc23a,emissive:0x805000}),signalGreen=new THREE.MeshStandardMaterial({color:0x42db78,emissive:0x0d6d2b});
+function streetLamp(x,z){
+ const post=new THREE.Mesh(new THREE.CylinderGeometry(.11,.15,6.2,8),poleMat);post.position.set(x,3.1,z);post.castShadow=true;scene.add(post);
+ const arm=addBox(.12,.12,1.35,poleMat,x,6.05,z-.58,false);
+ const shade=new THREE.Mesh(new THREE.CylinderGeometry(.34,.25,.16,10),poleMat);shade.position.set(x,5.92,z-1.12);scene.add(shade);
+ const bulb=new THREE.Mesh(new THREE.SphereGeometry(.19,8,8),lampMat);bulb.position.set(x,5.78,z-1.12);scene.add(bulb);
+}
+function trafficSignal(x,z,flip=false){
+ const post=new THREE.Mesh(new THREE.CylinderGeometry(.09,.12,4.5,8),poleMat);post.position.set(x,2.25,z);scene.add(post);
+ const head=addBox(.42,.95,.35,mat(0x20272b,.5,.35),x,4.1,z,false);
+ for(let q=0;q<3;q++){const bulb=new THREE.Mesh(new THREE.SphereGeometry(.12,10,8),[signalRed,signalAmber,signalGreen][q]);bulb.position.set(x,4.4-q*.3,z+.19);scene.add(bulb);}
+}
+for(let i=-4;i<=4;i++)for(let k=-4;k<=4;k++){
+ const a=i*90,b=k*90;
+ if(k%2===0)streetLamp(a+11.4,b+25);
+ if(i%2===0)streetLamp(a+25,b+11.4);
+ if((i+k)%2===0){trafficSignal(a+7.2,b+7.2);trafficSignal(a-7.2,b-7.2,true);}
 }
 const trunkMat=mat(0x59412b),leafMat=mat(0x2d6746);
 for(let i=0;i<220;i++){let x=(Math.random()-.5)*850,z=(Math.random()-.5)*850;if(Math.abs(x%90)<14||Math.abs(z%90)<14)continue;
@@ -103,8 +146,12 @@ function update(dt){
  const forward=keys.KeyW||keys.w||keys.arrowup,back=keys.KeyS||keys.s||keys.arrowdown,left=keys.KeyA||keys.a||keys.arrowleft,right=keys.KeyD||keys.d||keys.arrowright,boost=keys.ShiftLeft||keys.ShiftRight||keys.shift;
  let accel=boost?37:23,max=boost?68:48;if(forward)velocity+=accel*dt;else if(back)velocity-=32*dt;else velocity*=Math.pow(.982,dt*60);
  velocity=THREE.MathUtils.clamp(velocity,-18,max);const speedFactor=Math.min(Math.abs(velocity)/18,1);
- steer+=((left?1:0)-(right?1:0))*dt*2.6;steer*=Math.pow(.86,dt*60);if(keys[' '])velocity*=Math.pow(.94,dt*60);
- heading+=steer*speedFactor*velocity*.012*dt*60;car.root.rotation.y=heading;const old=car.root.position.clone();
+ const steerInput=(left?1:0)-(right?1:0);
+ steer=THREE.MathUtils.damp(steer,steerInput,4.5,dt);
+ if(keys[' '])velocity*=Math.pow(.94,dt*60);
+ const speedForSteering=Math.min(Math.abs(velocity)/48,1);
+ heading+=steer*speedForSteering*Math.sign(velocity)*.62*dt;
+ car.root.rotation.y=heading;const old=car.root.position.clone();
  car.root.position.x-=Math.sin(heading)*velocity*dt;car.root.position.z-=Math.cos(heading)*velocity*dt;
  car.root.position.x=THREE.MathUtils.clamp(car.root.position.x,-475,475);car.root.position.z=THREE.MathUtils.clamp(car.root.position.z,-475,475);
  for(const b of buildings){if(Math.abs(car.root.position.x-b.position.x)<7.5&&Math.abs(car.root.position.z-b.position.z)<7.5){car.root.position.copy(old);velocity*=-.25;health=Math.max(0,health-7);toast('CRASH!');break;}}
