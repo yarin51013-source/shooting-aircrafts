@@ -24,6 +24,7 @@ button{border:0;border-radius:10px;padding:14px 22px;background:linear-gradient(
 @media(max-width:650px){#mission{display:none}#help{font-size:9px}#speed{font-size:40px}#minimap{width:105px;height:105px}}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Ctext y=%2250%22 font-size=%2250%22%3E%F0%9F%8F%8E%3C/text%3E%3C/svg%3E">
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -382,7 +383,6 @@ function playSfx(kind){
   tail.frequency.setValueAtTime(92,now+.11);tail.frequency.exponentialRampToValueAtTime(38,now+.62);
   tailGain.gain.setValueAtTime(.0001,now+.11);tailGain.gain.exponentialRampToValueAtTime(.24,now+.13);tailGain.gain.exponentialRampToValueAtTime(.0001,now+.64);
   tail.connect(tailGain);tailGain.connect(audioCtx.destination);tail.start(now+.11);tail.stop(now+.66);
- }
  }
  else if(kind==='shift'){osc.type='triangle';osc.frequency.setValueAtTime(190,now);osc.frequency.exponentialRampToValueAtTime(390,now+.08);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.07,now+.01);gain.gain.exponentialRampToValueAtTime(.0001,now+.13);osc.start(now);osc.stop(now+.15);}
 }
