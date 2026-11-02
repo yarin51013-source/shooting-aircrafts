@@ -355,7 +355,18 @@ function playSfx(kind){
  osc.connect(gain);gain.connect(audioCtx.destination);
  if(kind==='cash'){osc.type='sine';osc.frequency.setValueAtTime(880,now);osc.frequency.exponentialRampToValueAtTime(1320,now+.12);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.18,now+.015);gain.gain.exponentialRampToValueAtTime(.0001,now+.28);osc.start(now);osc.stop(now+.3);}
  else if(kind==='nitro'){osc.type='sawtooth';osc.frequency.setValueAtTime(115,now);osc.frequency.exponentialRampToValueAtTime(48,now+.42);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.2,now+.035);gain.gain.exponentialRampToValueAtTime(.0001,now+.48);osc.start(now);osc.stop(now+.5);}
- else if(kind==='crash'){osc.type='square';osc.frequency.setValueAtTime(95,now);osc.frequency.exponentialRampToValueAtTime(28,now+.24);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.28,now+.012);gain.gain.exponentialRampToValueAtTime(.0001,now+.32);osc.start(now);osc.stop(now+.34);}
+ else if(kind==='crash'){
+  // A layered impact: deep body thump plus a short, filtered metal-and-gravel crunch.
+  osc.type='triangle';osc.frequency.setValueAtTime(78,now);osc.frequency.exponentialRampToValueAtTime(31,now+.22);
+  gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.24,now+.008);gain.gain.exponentialRampToValueAtTime(.0001,now+.29);
+  osc.start(now);osc.stop(now+.3);
+  const length=Math.floor(audioCtx.sampleRate*.34),buffer=audioCtx.createBuffer(1,length,audioCtx.sampleRate),data=buffer.getChannelData(0);
+  for(let i=0;i<length;i++){const fade=1-i/length;data[i]=(Math.random()*2-1)*fade*fade;}
+  const noise=audioCtx.createBufferSource();noise.buffer=buffer;
+  const filter=audioCtx.createBiquadFilter();filter.type='lowpass';filter.frequency.setValueAtTime(1250,now);filter.frequency.exponentialRampToValueAtTime(260,now+.3);
+  const crunch=audioCtx.createGain();crunch.gain.setValueAtTime(.0001,now);crunch.gain.exponentialRampToValueAtTime(.2,now+.006);crunch.gain.exponentialRampToValueAtTime(.0001,now+.34);
+  noise.connect(filter);filter.connect(crunch);crunch.connect(audioCtx.destination);noise.start(now);noise.stop(now+.35);
+ }
  else if(kind==='shift'){osc.type='triangle';osc.frequency.setValueAtTime(190,now);osc.frequency.exponentialRampToValueAtTime(390,now+.08);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.07,now+.01);gain.gain.exponentialRampToValueAtTime(.0001,now+.13);osc.start(now);osc.stop(now+.15);}
 }
 function updateAudio(){
@@ -465,8 +476,11 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  sunGroup.position.copy(camera.position).add(new THREE.Vector3(skyX,skyY,-80));
  moonGroup.position.copy(camera.position).add(new THREE.Vector3(-skyX,-skyY+130,-80));
  sunGroup.quaternion.copy(camera.quaternion);moonGroup.quaternion.copy(camera.quaternion);
- const sunAlpha=THREE.MathUtils.smoothstep(daylight,.08,.42),moonAlpha=1-THREE.MathUtils.smoothstep(daylight,.48,.82);
- sunGroup.visible=sunAlpha>.01;moonGroup.visible=moonAlpha>.01;
+ // Hard day/night ownership: never show the moon during daylight or the sun at night.
+ const isDay=daylight>=.5;
+ const sunAlpha=isDay?THREE.MathUtils.smoothstep(daylight,.5,.62):0;
+ const moonAlpha=!isDay?1-THREE.MathUtils.smoothstep(daylight,.38,.5):0;
+ sunGroup.visible=isDay;moonGroup.visible=!isDay;
  sunGlow.material.opacity=sunAlpha;moonGlow.material.opacity=moonAlpha;
  drawMap();
  for(const p of pickups)p.position.y=1.5+Math.sin(performance.now()*.002+p.position.x)*.22;
