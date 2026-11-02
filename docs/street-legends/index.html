@@ -293,7 +293,40 @@ function burst(position,color,count=12){
  }
 }
 const traffic=[],allCars=[car];
-for(let i=0;i<10;i++){const t=makeCar([0x2364ad,0xd5d7d8,0x24272b,0xe6a52d,0xeeeeee][i%5],false);const axis=i%2,lane=Math.floor(i/2)%2?4:-4,coord=(Math.random()-.5)*760;t.root.position.set(axis?coord:lane,0,axis?lane:coord);t.root.rotation.y=axis?Math.PI/2:0;traffic.push({car:t,axis,coord,speed:9+Math.random()*12});allCars.push(t);}
+for(let i=0;i<14;i++){
+ const t=makeCar([0x2364ad,0xd5d7d8,0x24272b,0xe6a52d,0xeeeeee,0x267d63,0x8e4baf][i%7],false);
+ const axis=i%2,lane=Math.floor(i/2)%2?4:-4,coord=(Math.random()-.5)*760,direction=i%4<2?1:-1,speed=8+Math.random()*9;
+ t.root.position.set(axis?coord:lane,0,axis?lane:coord);
+ // Face the same way the NPC actually travels, so traffic visibly drives forwards.
+ t.root.rotation.y=axis?(direction>0?-Math.PI/2:Math.PI/2):(direction>0?Math.PI:0);
+ traffic.push({car:t,axis,coord,direction,speed});
+ allCars.push(t);
+}
+// Pedestrians use the raised sidewalk strips only; their paths never enter the road lanes.
+const pedestrians=[];
+const skinMats=[mat(0xf0c49b),mat(0x9b684b),mat(0xd69b72),mat(0x704b38)];
+const shirtMats=[mat(0x2876b9),mat(0xd65b43),mat(0x3c8a61),mat(0x9b65b5),mat(0xe0ad37),mat(0xe5e8eb)];
+const pantsMats=[mat(0x263342),mat(0x424b59),mat(0x24252a),mat(0x67523e)];
+const torsoGeo=new THREE.BoxGeometry(.48,.72,.27),headGeo=new THREE.SphereGeometry(.19,10,8);
+const limbGeo=new THREE.CylinderGeometry(.075,.09,.48,7);
+function makePedestrian(i){
+ const root=new THREE.Group();scene.add(root);
+ const skin=skinMats[i%skinMats.length],shirt=shirtMats[i%shirtMats.length],pants=pantsMats[(i*3)%pantsMats.length];
+ const torso=new THREE.Mesh(torsoGeo,shirt);torso.position.y=1.05;root.add(torso);
+ const head=new THREE.Mesh(headGeo,skin);head.position.y=1.57;root.add(head);
+ const leftArm=new THREE.Group(),rightArm=new THREE.Group();
+ for(const [arm,x] of [[leftArm,-.32],[rightArm,.32]]){arm.position.set(x,1.31,0);const mesh=new THREE.Mesh(limbGeo,skin);mesh.position.y=-.23;arm.add(mesh);root.add(arm);}
+ const leftLeg=new THREE.Group(),rightLeg=new THREE.Group();
+ for(const [leg,x] of [[leftLeg,-.14],[rightLeg,.14]]){leg.position.set(x,.72,0);const mesh=new THREE.Mesh(limbGeo,pants);mesh.position.y=-.24;leg.add(mesh);root.add(leg);}
+ // A small dark hair cap gives the walkers a recognizable head silhouette.
+ const hair=new THREE.Mesh(new THREE.SphereGeometry(.195,9,7,0,Math.PI*2,0,Math.PI*.52),mat(0x30251f));hair.position.set(0,1.62,0);root.add(hair);
+ const axis=i%2,roadIndex=(i%9)-4,side=i%4<2?1:-1,direction=i%3===0?-1:1;
+ const lane=roadIndex*90+side*9.75,coord=(Math.random()-.5)*820;
+ if(axis===0)root.position.set(coord,0,lane);else root.position.set(lane,0,coord);
+ root.rotation.y=axis===0?(direction>0?Math.PI/2:-Math.PI/2):(direction>0?0:Math.PI);
+ pedestrians.push({root,axis,lane,coord,direction,speed:1.05+Math.random()*.8,phase:Math.random()*Math.PI*2,leftArm,rightArm,leftLeg,rightLeg});
+}
+for(let i=0;i<28;i++)makePedestrian(i);
 const pickups=[],coinMat=new THREE.MeshStandardMaterial({color:0xffc12e,emissive:0x8b4b00,metalness:.75,roughness:.2});
 for(let i=0;i<44;i++){const p=new THREE.Mesh(new THREE.TorusGeometry(.8,.17,10,24),coinMat);p.position.set((Math.floor(Math.random()*8)-4)*90+(Math.random()-.5)*42,1.6,(Math.floor(Math.random()*8)-4)*90+(Math.random()-.5)*42);scene.add(p);pickups.push(p);}
 const keys={};let running=false,paused=false,nitroPrimed=false,velocity=0,steer=0,heading=0,driftAngle=0,money=0,camMode=0,health=100;
@@ -347,7 +380,24 @@ function update(dt){
  car.root.position.x=THREE.MathUtils.clamp(car.root.position.x,-475,475);car.root.position.z=THREE.MathUtils.clamp(car.root.position.z,-475,475);
  for(const building of buildings){const b=building.mesh;const hitX=building.width/2+1.2,hitZ=building.depth/2+2.3;if(Math.abs(car.root.position.x-b.position.x)<hitX&&Math.abs(car.root.position.z-b.position.z)<hitZ){car.root.position.copy(old);velocity*=-.25;health=Math.max(0,health-7);burst(car.root.position.clone().add(new THREE.Vector3(0,1,0)),0xffa33b,18);toast('CRASH!');break;}}
  for(const p of pickups){p.rotation.y+=dt*1.6;if(p.visible&&p.position.distanceTo(car.root.position)<4){p.visible=false;money+=100;document.querySelector('#money').textContent=money.toLocaleString();toast('+$100 CASH');}}
- for(const t of traffic){t.coord+=t.speed*dt;if(t.coord>460)t.coord=-460;if(t.axis)t.car.root.position.x=t.coord;else t.car.root.position.z=t.coord;t.car.wheels.forEach(w=>{w.rotation.x+=t.speed*dt*1.8;});if(t.car.root.position.distanceTo(car.root.position)<3.1){velocity*=.55;health=Math.max(0,health-2);}}
+ for(const t of traffic){
+  t.coord+=t.direction*t.speed*dt;
+  if(t.coord>460)t.coord=-460;if(t.coord< -460)t.coord=460;
+  if(t.axis)t.car.root.position.x=t.coord;else t.car.root.position.z=t.coord;
+  t.car.wheels.forEach(w=>{w.rotation.x+=t.direction*t.speed*dt*1.8;});
+  if(t.car.root.position.distanceTo(car.root.position)<3.1){velocity*=.55;health=Math.max(0,health-2);}
+ }
+ // Walkers pace along sidewalk lanes and turn around at the city edge; they never cross onto asphalt.
+ for(const p of pedestrians){
+  p.coord+=p.direction*p.speed*dt;
+  if(p.coord>440){p.coord=440;p.direction=-1;}else if(p.coord< -440){p.coord=-440;p.direction=1;}
+  if(p.axis===0)p.root.position.x=p.coord;else p.root.position.z=p.coord;
+  p.root.rotation.y=p.axis===0?(p.direction>0?Math.PI/2:-Math.PI/2):(p.direction>0?0:Math.PI);
+  const stride=Math.sin(performance.now()*.007*p.speed+p.phase);
+  p.leftLeg.rotation.x=stride*.48;p.rightLeg.rotation.x=-stride*.48;
+  p.leftArm.rotation.x=-stride*.32;p.rightArm.rotation.x=stride*.32;
+  p.root.position.y=Math.abs(stride)*.035;
+ }
  if(health<=0){velocity=0;toast('ENGINE DAMAGED — PRESS R');}
  document.querySelector('#speed').textContent=String(Math.round(Math.abs(velocity)*3.6)).padStart(3,'0');
  document.querySelector('#gear').textContent='GEAR '+(Math.abs(velocity)<1?'N':Math.min(6,Math.floor(Math.abs(velocity)/9)+1))+(boost?'  •  NITRO':'');
