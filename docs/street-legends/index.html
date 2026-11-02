@@ -21,9 +21,9 @@ button{border:0;border-radius:10px;padding:14px 22px;background:linear-gradient(
 .tag{display:inline-block;border:1px solid #ffffff30;border-radius:30px;padding:6px 10px;font-size:10px;letter-spacing:1px;color:#dce7f0;margin:3px}
 #garage{display:none;position:absolute;inset:0;pointer-events:auto;background:#050b12df;align-items:center;justify-content:center}
 #garage .card{width:min(430px,90vw);padding:25px}.swatches{display:flex;gap:10px;margin:15px 0}.swatch{width:35px;height:35px;border-radius:50%;border:2px solid #fff8;cursor:pointer}
-@media(max-width:650px){#mission{display:none}#help{font-size:9px}#speed{font-size:40px}#minimap{width:105px;height:105px}}
+@media(max-width:650px){#mission{display:none}#help{font-size:9px}#speed{font-size:40px}#minimap{width:105px;height:105px}#namePanel{top:67px;left:50%;padding:7px 8px;gap:5px}#playerName{width:105px}#saveName{padding:8px 9px;font-size:10px}#nameStatus{display:none}}
 
-#namePanel{position:absolute;top:122px;left:20px;pointer-events:auto;padding:10px 12px;display:flex;gap:7px;align-items:center}
+#namePanel{position:absolute;top:68px;left:50%;transform:translateX(-50%);pointer-events:auto;padding:9px 12px;display:flex;gap:7px;align-items:center;z-index:12;white-space:nowrap}
 #playerName{width:145px;min-width:0;background:#07121d;color:#fff;border:1px solid #ffffff44;border-radius:7px;padding:8px;font-weight:700;outline:none}
 #saveName{background:#ffb52e;color:#17202a;border:0;border-radius:7px;padding:8px 10px;font-weight:900;cursor:pointer}
 #onlineCount{position:absolute;top:18px;left:50%;transform:translateX(-50%);padding:8px 12px;font-size:11px;letter-spacing:1px;color:#9df7c3}
@@ -130,6 +130,20 @@ for(let i=-4;i<=4;i++){
    addBox(.62,.035,1.15,lineMat,cross+11,.035,road+stripe,false);
   }
  }
+}
+
+const streetRamps=[];
+const rampMat= new THREE.MeshStandardMaterial({color:0x596875,metalness:.72,roughness:.34});
+const rampEdgeMat=new THREE.MeshStandardMaterial({color:0xffb52e,metalness:.28,roughness:.42,emissive:0x6d3900,emissiveIntensity:.35});
+for(const [rx,rz,rot] of [[0,-42,0],[180,138,0],[-180,-222,0],[90,318,0]]){
+ const ramp=new THREE.Group();ramp.position.set(rx,.05,rz);ramp.rotation.y=rot;scene.add(ramp);
+ const deck=new THREE.Mesh(new THREE.BoxGeometry(9,.8,14),rampMat);deck.position.set(0,1.05,0);deck.rotation.x=.30;deck.castShadow=true;deck.receiveShadow=true;ramp.add(deck);
+ for(const side of [-1,1]){
+  const rail=new THREE.Mesh(new THREE.BoxGeometry(.28,.55,14),rampEdgeMat);rail.position.set(side*4.45,1.25,0);rail.rotation.x=.30;ramp.add(rail);
+  const support=new THREE.Mesh(new THREE.BoxGeometry(.45,1.3,.55),rampMat);support.position.set(side*3.7,.55,4.8);ramp.add(support);
+ }
+ const stripe=new THREE.Mesh(new THREE.BoxGeometry(8.7,.045,.65),rampEdgeMat);stripe.position.set(0,1.48,5.8);stripe.rotation.x=.30;ramp.add(stripe);
+ streetRamps.push({x:rx,z:rz,used:false});
 }
 const buildings=[];
 const winMat=new THREE.MeshStandardMaterial({color:0xb9d6df,emissive:0x344d5b,emissiveIntensity:.32,roughness:.28,metalness:.12});
@@ -512,6 +526,7 @@ document.querySelector('#lightToggle').addEventListener('click',()=>setLights(!l
 document.querySelector('#closeGarage').onclick=()=>{document.querySelector('#garage').style.display='none';paused=false;};
 function togglePause(){paused=!paused;document.querySelector('#overlay').style.display=paused?'flex':'none';document.querySelector('#menu h1').innerHTML=paused?'GAME<br><span>PAUSED</span>':'STREET<br><span>LEGENDS</span>';document.querySelector('#menu p').textContent=paused?'Take a breather. The city will be waiting.':'Take the wheel of your sports car and explore the city.';document.querySelector('#start').textContent=paused?'RESUME DRIVING →':'START DRIVING →';}
 document.querySelector('#start').onclick=()=>{initAudio();hideNitroFlames();nitroPrimed=false;keys.ShiftLeft=false;keys.ShiftRight=false;keys.shift=false;velocity=0;driftAngle=0;running=true;paused=false;document.querySelector('#overlay').style.display='none';};
+let rampVerticalVelocity=0,rampCooldown=0;
 function update(dt){
  if(!running||paused){hideNitroFlames();updateAudio();return;}
  const forward=keys.KeyW||keys.w||keys.arrowup,back=keys.KeyS||keys.s||keys.arrowdown,left=keys.KeyA||keys.a||keys.arrowleft,right=keys.KeyD||keys.d||keys.arrowright,boost=keys.ShiftLeft||keys.ShiftRight||keys.shift;
@@ -548,6 +563,16 @@ function update(dt){
  car.root.position.x-=Math.sin(travelHeading)*velocity*dt;car.root.position.z-=Math.cos(travelHeading)*velocity*dt;
  car.root.position.x=THREE.MathUtils.clamp(car.root.position.x,-475,475);car.root.position.z=THREE.MathUtils.clamp(car.root.position.z,-475,475);
  for(const building of buildings){const b=building.mesh;const hitX=building.width/2+1.2,hitZ=building.depth/2+2.3;if(Math.abs(car.root.position.x-b.position.x)<hitX&&Math.abs(car.root.position.z-b.position.z)<hitZ){car.root.position.copy(old);velocity*=-.25;health=Math.max(0,health-7);burst(car.root.position.clone().add(new THREE.Vector3(0,1,0)),0xffa33b,18);playSfx('crash');toast('CRASH!');break;}}
+ rampCooldown=Math.max(0,rampCooldown-dt);
+ for(const ramp of streetRamps){
+  if(rampCooldown<=0&&Math.abs(car.root.position.x-ramp.x)<4.2&&Math.abs(car.root.position.z-ramp.z)<6.2&&velocity>13&&car.root.position.y<.8){
+   rampVerticalVelocity=Math.min(19,10+velocity*.16);rampCooldown=1.15;playSfx('shift');toast('RAMP JUMP!');
+  }
+ }
+ if(car.root.position.y>0||rampVerticalVelocity>0){
+  rampVerticalVelocity-=29*dt;car.root.position.y+=rampVerticalVelocity*dt;
+  if(car.root.position.y<=0){car.root.position.y=0;rampVerticalVelocity=0;}
+ }
  for(const p of pickups){p.rotation.y+=dt*1.6;if(p.visible&&p.position.distanceTo(car.root.position)<4){p.visible=false;money+=100;document.querySelector('#money').textContent=money.toLocaleString();playSfx('cash');toast('+$100 CASH');}}
  for(const t of traffic){
   t.coord+=t.direction*t.speed*dt;
