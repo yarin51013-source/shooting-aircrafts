@@ -152,26 +152,32 @@ for(let i=-4;i<=4;i++)for(let k=-4;k<=4;k++){
  if((i+k)%2===0){trafficSignal(a+7.2,b+7.2);trafficSignal(a-7.2,b-7.2,true);}
 }
 const trunkMat=mat(0x59412b),leafMat=mat(0x2d6746);
-for(let i=0;i<95;i++){let x=(Math.random()-.5)*850,z=(Math.random()-.5)*850;if(Math.abs(x%90)<16||Math.abs(z%90)<16)continue;
+for(let i=0,placed=0;i<500&&placed<95;i++){let x=(Math.random()-.5)*850,z=(Math.random()-.5)*850;if(Math.abs(x%90)<16||Math.abs(z%90)<16)continue;
+ const insideBuilding=buildings.some(b=>Math.abs(x-b.mesh.position.x)<b.width/2+3.5&&Math.abs(z-b.mesh.position.z)<b.depth/2+3.5);if(insideBuilding)continue;
  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.25,.38,3,7),trunkMat);trunk.position.set(x,1.4,z);scene.add(trunk);
- const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(2.2+Math.random()*1.2,1),leafMat);crown.position.set(x,4,z);crown.castShadow=false;scene.add(crown);
+ const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(2.2+Math.random()*1.2,1),leafMat);crown.position.set(x,4,z);crown.castShadow=false;scene.add(crown);placed++;
 }
 function makeCar(color=0xe52b35){
  const root=new THREE.Group();scene.add(root);const bodyMat=mat(color,.28,.72),glass=mat(0x152c3b,.16,.6),rubber=mat(0x111316,1),rim=mat(0x9ba5ad,.25,.85);
+ const shadow=new THREE.Mesh(new THREE.CircleGeometry(1,24),new THREE.MeshBasicMaterial({color:0x071018,transparent:true,opacity:.28,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.set(0,.025,0);shadow.scale.set(1.18,2.05,1);shadow.renderOrder=1;root.add(shadow);
+ const wheelMeshes=[],brakeLamps=[];
  const body=new THREE.Mesh(new THREE.BoxGeometry(2.25,.62,4.55),bodyMat);body.position.y=.85;body.castShadow=true;root.add(body);
  const hood=new THREE.Mesh(new THREE.BoxGeometry(2.16,.25,1.25),bodyMat);hood.position.set(0,1.17,-1.35);root.add(hood);
  const cabin=new THREE.Mesh(new THREE.BoxGeometry(1.72,.72,2.1),glass);cabin.position.set(0,1.48,.25);cabin.castShadow=true;root.add(cabin);
  const roof=new THREE.Mesh(new THREE.BoxGeometry(1.65,.12,1.65),bodyMat);roof.position.set(0,1.87,.2);root.add(roof);
  for(let z of [-1.45,1.45])for(let x of [-1.16,1.16]){
-  const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.48,.48,.32,20),rubber);wheel.rotation.z=Math.PI/2;wheel.position.set(x,.55,z);wheel.castShadow=true;root.add(wheel);
+  const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.48,.48,.32,16),rubber);wheel.rotation.z=Math.PI/2;wheel.position.set(x,.55,z);root.add(wheel);wheelMeshes.push(wheel);
   const hub=new THREE.Mesh(new THREE.CylinderGeometry(.23,.23,.34,16),rim);hub.rotation.z=Math.PI/2;hub.position.set(x,.55,z);root.add(hub);
  }
- for(let x of [-.76,.76]){const head=new THREE.Mesh(new THREE.BoxGeometry(.42,.18,.08),mat(0xe8f4ff,.2,.2));head.position.set(x,.96,-2.3);root.add(head);
- const tail=new THREE.Mesh(new THREE.BoxGeometry(.42,.16,.08),mat(0xff2424,.3));tail.position.set(x,.96,2.3);root.add(tail);}
- return {root,bodyMat};
+ const headMat=new THREE.MeshStandardMaterial({color:0xe8f4ff,emissive:0xa8dfff,emissiveIntensity:.65,roughness:.2});
+ const tailMat=new THREE.MeshStandardMaterial({color:0xff2424,emissive:0x8d0000,emissiveIntensity:.45,roughness:.3});
+ for(let x of [-.76,.76]){const head=new THREE.Mesh(new THREE.BoxGeometry(.42,.18,.08),headMat);head.position.set(x,.96,-2.3);root.add(head);
+ const tail=new THREE.Mesh(new THREE.BoxGeometry(.42,.16,.08),tailMat.clone());tail.position.set(x,.96,2.3);root.add(tail);brakeLamps.push(tail.material);}
+ const underglow=new THREE.Mesh(new THREE.PlaneGeometry(1.8,3.5),new THREE.MeshBasicMaterial({color:0x27aaff,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}));underglow.rotation.x=-Math.PI/2;underglow.position.y=.07;root.add(underglow);
+ return {root,bodyMat,wheels:wheelMeshes,brakeLamps,underglow};
 }
 const car=makeCar();car.root.position.set(0,0,12);
-// Rear exhaust flames and glow removed for a clean look and better performance.
+// Lightweight car lighting and soft contact shadows; no expensive real-time shadow maps.
 const effectParticles=[];
 function burst(position,color,count=12){
  for(let i=0;i<count;i++){
@@ -203,6 +209,9 @@ function update(dt){
  const steerInput=(left?1:0)-(right?1:0);
  steer=THREE.MathUtils.damp(steer,steerInput,6.0,dt);
  if(keys[' '])velocity*=Math.pow(.94,dt*60);
+ car.brakeLamps.forEach(m=>m.emissiveIntensity=(keys[' ']||back)?2.4:.45);
+ car.underglow.material.opacity=boost&&Math.abs(velocity)>8?.22:0;
+ car.wheels.forEach(w=>{w.rotation.x+=velocity*dt*1.8;});
  const speedForSteering=Math.min(Math.abs(velocity)/48,1);
  heading+=steer*speedForSteering*Math.sign(velocity)*.88*dt;
  car.root.rotation.y=heading;const old=car.root.position.clone();
@@ -210,7 +219,7 @@ function update(dt){
  car.root.position.x=THREE.MathUtils.clamp(car.root.position.x,-475,475);car.root.position.z=THREE.MathUtils.clamp(car.root.position.z,-475,475);
  for(const building of buildings){const b=building.mesh;const hitX=building.width/2+1.2,hitZ=building.depth/2+2.3;if(Math.abs(car.root.position.x-b.position.x)<hitX&&Math.abs(car.root.position.z-b.position.z)<hitZ){car.root.position.copy(old);velocity*=-.25;health=Math.max(0,health-7);burst(car.root.position.clone().add(new THREE.Vector3(0,1,0)),0xffa33b,18);toast('CRASH!');break;}}
  for(const p of pickups){p.rotation.y+=dt*1.6;if(p.visible&&p.position.distanceTo(car.root.position)<4){p.visible=false;money+=100;document.querySelector('#money').textContent=money.toLocaleString();toast('+$100 CASH');}}
- for(const t of traffic){t.coord+=t.speed*dt;if(t.coord>460)t.coord=-460;if(t.axis)t.car.root.position.x=t.coord;else t.car.root.position.z=t.coord;if(t.car.root.position.distanceTo(car.root.position)<3.1){velocity*=.55;health=Math.max(0,health-2);}}
+ for(const t of traffic){t.coord+=t.speed*dt;if(t.coord>460)t.coord=-460;if(t.axis)t.car.root.position.x=t.coord;else t.car.root.position.z=t.coord;t.car.wheels.forEach(w=>{w.rotation.x+=t.speed*dt*1.8;});if(t.car.root.position.distanceTo(car.root.position)<3.1){velocity*=.55;health=Math.max(0,health-2);}}
  if(health<=0){velocity=0;toast('ENGINE DAMAGED — PRESS R');}
  document.querySelector('#speed').textContent=String(Math.round(Math.abs(velocity)*3.6)).padStart(3,'0');
  document.querySelector('#gear').textContent='GEAR '+(Math.abs(velocity)<1?'N':Math.min(6,Math.floor(Math.abs(velocity)/9)+1))+(boost?'  •  NITRO':'');
