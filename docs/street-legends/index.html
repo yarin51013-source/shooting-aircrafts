@@ -212,10 +212,22 @@ for(let i=-4;i<=4;i++)for(let k=-4;k<=4;k++){
  if((i-k)%4===0)streetBench(a+13,b-17,(i%2)*Math.PI/2);
 }
 
+// Shared low-poly tree parts keep the richer canopy inexpensive to render.
+const treeTrunkGeo=new THREE.CylinderGeometry(.24,.43,3.5,9);
+const treeBranchGeo=new THREE.CylinderGeometry(.075,.13,1.65,6);
+const treeLeafGeo=new THREE.IcosahedronGeometry(1,1);
+const treeLeafMats=[mat(0x285b3b,.92),mat(0x326c43,.9),mat(0x3b7848,.92),mat(0x477e4b,.92)];
+const treeBranchMat=mat(0x493522,.95);
 for(let i=0,placed=0;i<500&&placed<95;i++){let x=(Math.random()-.5)*850,z=(Math.random()-.5)*850;if(Math.abs(x%90)<16||Math.abs(z%90)<16)continue;
  const insideBuilding=buildings.some(b=>Math.abs(x-b.mesh.position.x)<b.width/2+3.5&&Math.abs(z-b.mesh.position.z)<b.depth/2+3.5);if(insideBuilding)continue;
- const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.25,.38,3,7),trunkMat);trunk.position.set(x,1.4,z);scene.add(trunk);
- const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(2.2+Math.random()*1.2,1),leafMat);crown.position.set(x,4,z);crown.castShadow=false;scene.add(crown);placed++;
+ const tree=new THREE.Group();tree.position.set(x,0,z);scene.add(tree);
+ const trunk=new THREE.Mesh(treeTrunkGeo,trunkMat);trunk.position.y=1.72;tree.add(trunk);
+ // Four short branches peek through the canopy for a more natural silhouette.
+ for(let b=0;b<4;b++){const a=b*Math.PI/2+.35,branch=new THREE.Mesh(treeBranchGeo,treeBranchMat);branch.position.set(Math.cos(a)*.72,2.65+((b%2)*.25),Math.sin(a)*.72);branch.rotation.z=Math.cos(a)*-.72;branch.rotation.x=Math.sin(a)*.72;tree.add(branch);}
+ const height=4.3+Math.random()*.55,spread=2.15+Math.random()*.45;
+ const clusters=[[0,height,0,1.22],[spread*.72,height-.35,.1,.83],[-spread*.72,height-.2,-.12,.86],[.1,height-.25,spread*.7,.82],[-.12,height-.3,-spread*.7,.84],[spread*.42,height+.72,-spread*.35,.68],[-spread*.38,height+.65,spread*.34,.7]];
+ for(let q=0;q<clusters.length;q++){const [cx,cy,cz,s]=clusters[q];const crown=new THREE.Mesh(treeLeafGeo,treeLeafMats[(q+placed)%treeLeafMats.length]);crown.position.set(cx,cy,cz);crown.scale.set(s*(.92+Math.random()*.16),s*(.9+Math.random()*.2),s*(.92+Math.random()*.16));tree.add(crown);}
+ placed++;
 }
 function makeCar(color=0xe52b35){
  const root=new THREE.Group();scene.add(root);const bodyMat=mat(color,.28,.72),glass=mat(0x152c3b,.16,.6),rubber=mat(0x111316,1),rim=mat(0x9ba5ad,.25,.85);
@@ -261,18 +273,18 @@ const traffic=[],allCars=[car];
 for(let i=0;i<10;i++){const t=makeCar([0x2364ad,0xd5d7d8,0x24272b,0xe6a52d,0xeeeeee][i%5]);const axis=i%2,lane=Math.floor(i/2)%2?4:-4,coord=(Math.random()-.5)*760;t.root.position.set(axis?coord:lane,0,axis?lane:coord);t.root.rotation.y=axis?Math.PI/2:0;traffic.push({car:t,axis,coord,speed:9+Math.random()*12});allCars.push(t);}
 const pickups=[],coinMat=new THREE.MeshStandardMaterial({color:0xffc12e,emissive:0x8b4b00,metalness:.75,roughness:.2});
 for(let i=0;i<44;i++){const p=new THREE.Mesh(new THREE.TorusGeometry(.8,.17,10,24),coinMat);p.position.set((Math.floor(Math.random()*8)-4)*90+(Math.random()-.5)*42,1.6,(Math.floor(Math.random()*8)-4)*90+(Math.random()-.5)*42);scene.add(p);pickups.push(p);}
-const keys={};let running=false,paused=false,velocity=0,steer=0,heading=0,money=0,camMode=0,health=100;
-addEventListener('keydown',e=>{keys[e.code]=true;keys[e.key.toLowerCase()]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)||['KeyW','KeyA','KeyS','KeyD','ShiftLeft','ShiftRight','Space'].includes(e.code))e.preventDefault();
+const keys={};let running=false,paused=false,nitroPrimed=false,velocity=0,steer=0,heading=0,money=0,camMode=0,health=100;
+addEventListener('keydown',e=>{keys[e.code]=true;keys[e.key.toLowerCase()]=true;if((e.code==='ShiftLeft'||e.code==='ShiftRight')&&running&&!paused)nitroPrimed=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)||['KeyW','KeyA','KeyS','KeyD','ShiftLeft','ShiftRight','Space'].includes(e.code))e.preventDefault();
  if(e.key.toLowerCase()==='c')camMode=(camMode+1)%3;if(e.key.toLowerCase()==='r')resetCar();if(e.key.toLowerCase()==='g'&&running)openGarage();if(e.key==='Escape'&&running)togglePause();});
 addEventListener('keyup',e=>{keys[e.code]=false;keys[e.key.toLowerCase()]=false;});
 function toast(t){const el=document.querySelector('#toast');el.textContent=t;el.style.opacity=1;clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.style.opacity=0,1600);}
 function hideNitroFlames(){for(const f of car.nitroFlames){f.flame.visible=false;f.middle.visible=false;f.core.visible=false;}}
-function resetCar(){hideNitroFlames();car.root.position.set(0,0,12);heading=0;velocity=0;health=100;toast('CAR RESET');}
+function resetCar(){hideNitroFlames();nitroPrimed=false;keys.ShiftLeft=false;keys.ShiftRight=false;keys.shift=false;car.root.position.set(0,0,12);heading=0;velocity=0;health=100;toast('CAR RESET');}
 function openGarage(){document.querySelector('#garage').style.display='flex';paused=true;}
 document.querySelectorAll('.swatch').forEach(s=>s.onclick=()=>{car.bodyMat.color.set(s.dataset.color);toast('PAINT UPDATED');});
 document.querySelector('#closeGarage').onclick=()=>{document.querySelector('#garage').style.display='none';paused=false;};
 function togglePause(){paused=!paused;document.querySelector('#overlay').style.display=paused?'flex':'none';document.querySelector('#menu h1').innerHTML=paused?'GAME<br><span>PAUSED</span>':'STREET<br><span>LEGENDS</span>';document.querySelector('#menu p').textContent=paused?'Take a breather. The city will be waiting.':'Take the wheel of your sports car and explore the city.';document.querySelector('#start').textContent=paused?'RESUME DRIVING →':'START DRIVING →';}
-document.querySelector('#start').onclick=()=>{hideNitroFlames();running=true;paused=false;document.querySelector('#overlay').style.display='none';};
+document.querySelector('#start').onclick=()=>{hideNitroFlames();nitroPrimed=false;keys.ShiftLeft=false;keys.ShiftRight=false;keys.shift=false;velocity=0;running=true;paused=false;document.querySelector('#overlay').style.display='none';};
 function update(dt){
  if(!running||paused){hideNitroFlames();return;}
  const forward=keys.KeyW||keys.w||keys.arrowup,back=keys.KeyS||keys.s||keys.arrowdown,left=keys.KeyA||keys.a||keys.arrowleft,right=keys.KeyD||keys.d||keys.arrowright,boost=keys.ShiftLeft||keys.ShiftRight||keys.shift;
@@ -285,7 +297,7 @@ function update(dt){
  car.underglow.material.opacity=boost&&Math.abs(velocity)>8?.22:0;
  const flameTime=performance.now()*.018;
  for(const f of car.nitroFlames){
-  const active=running&&!paused&&boost&&Math.abs(velocity)>5;
+  const active=running&&!paused&&nitroPrimed&&boost&&Math.abs(velocity)>5;
   f.flame.visible=active;f.middle.visible=active;f.core.visible=active;
   if(active){
    const flicker=.78+.22*Math.sin(flameTime*2.7+f.seed)+.12*Math.sin(flameTime*5.1+f.seed*2);
