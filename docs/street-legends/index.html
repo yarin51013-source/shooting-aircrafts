@@ -332,7 +332,7 @@ const pickups=[],coinMat=new THREE.MeshStandardMaterial({color:0xffc12e,emissive
 for(let i=0;i<44;i++){const p=new THREE.Mesh(new THREE.TorusGeometry(.8,.17,10,24),coinMat);p.position.set((Math.floor(Math.random()*8)-4)*90+(Math.random()-.5)*42,1.6,(Math.floor(Math.random()*8)-4)*90+(Math.random()-.5)*42);scene.add(p);pickups.push(p);}
 const keys={};let running=false,paused=false,nitroPrimed=false,velocity=0,steer=0,heading=0,driftAngle=0,money=0,camMode=0,health=100;
 // Procedural audio: no downloads or extra assets. Audio starts after the player's first click.
-let audioCtx=null,engineOsc=null,engineOsc2=null,engineGain=null,engineFilter=null,highSpeedOsc=null,highSpeedOsc2=null,highSpeedGain=null,highSpeedFilter=null,tireNoise=null,tireGain=null,audioEnabled=true,nitroWasOn=false,lastAudioGear=1;
+let audioCtx=null,engineOsc=null,engineOsc2=null,engineGain=null,engineFilter=null,highSpeedOsc=null,highSpeedOsc2=null,highSpeedGain=null,highSpeedFilter=null,engineNoise=null,engineNoiseGain=null,engineNoiseFilter=null,tireNoise=null,tireGain=null,audioEnabled=true,nitroWasOn=false,lastAudioGear=1;
 function initAudio(){
  if(audioCtx){if(audioCtx.state==='suspended')audioCtx.resume();return;}
  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
@@ -344,6 +344,13 @@ function initAudio(){
  const engineMix=audioCtx.createGain();engineMix.gain.value=.3;
  engineOsc.connect(engineFilter);engineOsc2.connect(engineFilter);engineFilter.connect(engineMix);engineMix.connect(engineGain);engineGain.connect(audioCtx.destination);
  engineOsc.start();engineOsc2.start();
+ // Soft filtered intake/exhaust texture adds a little real-world engine breath.
+ const engineNoiseBuffer=audioCtx.createBuffer(1,audioCtx.sampleRate*2,audioCtx.sampleRate),engineNoiseData=engineNoiseBuffer.getChannelData(0);
+ for(let i=0;i<engineNoiseData.length;i++)engineNoiseData[i]=(Math.random()*2-1)*.45;
+ engineNoise=audioCtx.createBufferSource();engineNoise.buffer=engineNoiseBuffer;engineNoise.loop=true;
+ engineNoiseFilter=audioCtx.createBiquadFilter();engineNoiseFilter.type='bandpass';engineNoiseFilter.frequency.value=620;engineNoiseFilter.Q.value=.65;
+ engineNoiseGain=audioCtx.createGain();engineNoiseGain.gain.value=0;
+ engineNoise.connect(engineNoiseFilter);engineNoiseFilter.connect(engineNoiseGain);engineNoiseGain.connect(audioCtx.destination);engineNoise.start();
  // A separate, deeper performance-car layer fades in above 173 km/h.
  highSpeedOsc=audioCtx.createOscillator();highSpeedOsc.type='sawtooth';
  highSpeedOsc2=audioCtx.createOscillator();highSpeedOsc2.type='square';
@@ -390,25 +397,31 @@ function updateAudio(){
  if(!audioCtx||!engineGain)return;
  const speed=Math.abs(velocity),active=audioEnabled&&running&&!paused;
  const throttle=(keys.KeyW||keys.w||keys.arrowup)?1:0;
+ const reverse=(keys.KeyS||keys.s||keys.arrowdown)?1:0;
  const boost=keys.ShiftLeft||keys.ShiftRight||keys.shift;
- // Six simulated gears: pitch climbs through each gear, then drops on upshift.
+ // Simulated automatic transmission: revs climb under throttle, then fall on each upshift.
  const gear=Math.min(6,Math.floor(speed/9)+1);
  const gearProgress=Math.min(1,(speed-(gear-1)*9)/9);
- const rpm=78+gearProgress*118+throttle*34+(boost?22:0);
- engineOsc.frequency.setTargetAtTime(rpm,audioCtx.currentTime,.045);
- engineOsc2.frequency.setTargetAtTime(rpm*2.03,audioCtx.currentTime,.055);
- engineFilter.frequency.setTargetAtTime(390+gearProgress*570+throttle*360,audioCtx.currentTime,.07);
- engineGain.gain.setTargetAtTime(active?(.095+gearProgress*.035+throttle*.075):0,audioCtx.currentTime,.09);
+ const load=throttle?1:(reverse?.48:.12);
+ const revving=throttle*Math.max(0,1-speed/28);
+ const rpm=29+gearProgress*66+load*24+revving*52+(boost?17:0);
+ const now=audioCtx.currentTime;
+ engineOsc.frequency.setTargetAtTime(rpm,now,.075);
+ engineOsc2.frequency.setTargetAtTime(rpm*2.01,now,.085);
+ engineFilter.frequency.setTargetAtTime(310+gearProgress*620+load*390+revving*300,now,.09);
+ engineGain.gain.setTargetAtTime(active?(.12+gearProgress*.025+load*.045+revving*.035):0,now,.11);
+ engineNoiseFilter.frequency.setTargetAtTime(420+rpm*8+throttle*850,now,.1);
+ engineNoiseGain.gain.setTargetAtTime(active?(.012+throttle*.035+revving*.025):0,now,.13);
  if(active&&throttle&&gear>lastAudioGear)playSfx('shift');
  lastAudioGear=gear;
- // Sharper exhaust harmonics fade in above 173 km/h.
+ // High-RPM exhaust harmonics become prominent above 173 km/h.
  const highSpeed=Math.max(0,Math.min(1,(speed-48.1)/9));
- highSpeedOsc.frequency.setTargetAtTime(135+rpm*1.18+throttle*48,audioCtx.currentTime,.045);
- highSpeedOsc2.frequency.setTargetAtTime(205+rpm*1.72+throttle*72,audioCtx.currentTime,.055);
- highSpeedFilter.frequency.setTargetAtTime(650+highSpeed*1550+throttle*520,audioCtx.currentTime,.07);
- highSpeedGain.gain.setTargetAtTime(active?highSpeed*(.055+throttle*.12):0,audioCtx.currentTime,.11);
+ highSpeedOsc.frequency.setTargetAtTime(105+rpm*1.65+throttle*35,now,.06);
+ highSpeedOsc2.frequency.setTargetAtTime(165+rpm*2.25+throttle*48,now,.07);
+ highSpeedFilter.frequency.setTargetAtTime(580+highSpeed*1450+throttle*440,now,.08);
+ highSpeedGain.gain.setTargetAtTime(active?highSpeed*(.045+throttle*.105):0,now,.12);
  const drifting=active&&keys[' ']&&speed>17&&(keys.KeyA||keys.a||keys.arrowleft||keys.KeyD||keys.d||keys.arrowright);
- tireGain.gain.setTargetAtTime(drifting ? .12 : 0,audioCtx.currentTime,.09);
+ tireGain.gain.setTargetAtTime(drifting ? .12 : 0,now,.09);
  if(active&&nitroPrimed&&boost&&speed>5&&!nitroWasOn)playSfx('nitro');
  nitroWasOn=!!(active&&nitroPrimed&&boost&&speed>5);
 }
