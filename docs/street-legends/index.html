@@ -178,6 +178,7 @@ for(let gx=-4;gx<4;gx++)for(let gz=-4;gz<4;gz++)for(let n=0;n<2;n++){
   }
  }
 }
+const trunkMat=mat(0x59412b),leafMat=mat(0x2d6746);
 // Street furniture: lamps, traffic signals, planters and benches.
 const planterMat=mat(0x515b54,.9),soilMat=mat(0x3d3025,.95),benchMat=mat(0x65452e,.78),metalMat=mat(0x343d43,.65,.35),planterLeafMat=mat(0x39754a,.9);
 function streetPlanter(x,z){
@@ -210,7 +211,7 @@ for(let i=-4;i<=4;i++)for(let k=-4;k<=4;k++){
  if((i+k)%3===0){streetPlanter(a+13,b+17);streetPlanter(a-13,b-17);}
  if((i-k)%4===0)streetBench(a+13,b-17,(i%2)*Math.PI/2);
 }
-const trunkMat=mat(0x59412b),leafMat=mat(0x2d6746);
+
 for(let i=0,placed=0;i<500&&placed<95;i++){let x=(Math.random()-.5)*850,z=(Math.random()-.5)*850;if(Math.abs(x%90)<16||Math.abs(z%90)<16)continue;
  const insideBuilding=buildings.some(b=>Math.abs(x-b.mesh.position.x)<b.width/2+3.5&&Math.abs(z-b.mesh.position.z)<b.depth/2+3.5);if(insideBuilding)continue;
  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.25,.38,3,7),trunkMat);trunk.position.set(x,1.4,z);scene.add(trunk);
