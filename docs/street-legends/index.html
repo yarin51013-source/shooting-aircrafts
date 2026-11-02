@@ -49,6 +49,19 @@ const scene=new THREE.Scene();const daySky=new THREE.Color(0x9fc5dd),nightSky=ne
 const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,1000);
 const ambient=new THREE.HemisphereLight(0xddeeff,0x68745e,2);scene.add(ambient);
 const sun=new THREE.DirectionalLight(0xffefcf,3);sun.position.set(-90,150,80);sun.castShadow=false;scene.add(sun);
+// Sky objects follow the camera so they remain visible across the whole city.
+function glowTexture(center,edge){
+ const cn=document.createElement('canvas');cn.width=cn.height=128;const g=cn.getContext('2d');
+ const grad=g.createRadialGradient(64,64,2,64,64,64);grad.addColorStop(0,center);grad.addColorStop(.45,edge);grad.addColorStop(1,'rgba(255,255,255,0)');
+ g.fillStyle=grad;g.fillRect(0,0,128,128);const t=new THREE.CanvasTexture(cn);t.colorSpace=THREE.SRGBColorSpace;return t;
+}
+const sunGroup=new THREE.Group();scene.add(sunGroup);
+const sunBall=new THREE.Mesh(new THREE.SphereGeometry(9,20,16),new THREE.MeshBasicMaterial({color:0xffe7a0,fog:false}));sunGroup.add(sunBall);
+const sunGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexture('rgba(255,245,190,.95)','rgba(255,165,55,.3)'),transparent:true,depthWrite:false,fog:false,blending:THREE.AdditiveBlending}));sunGlow.scale.set(100,100,1);sunGroup.add(sunGlow);
+const moonGroup=new THREE.Group();scene.add(moonGroup);
+const moonBall=new THREE.Mesh(new THREE.SphereGeometry(7,20,16),new THREE.MeshBasicMaterial({color:0xe4efff,fog:false}));moonGroup.add(moonBall);
+const moonShadow=new THREE.Mesh(new THREE.SphereGeometry(7.2,20,16),new THREE.MeshBasicMaterial({color:0x101b30,fog:false}));moonShadow.position.set(4,1,2);moonGroup.add(moonShadow);
+const moonGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexture('rgba(210,230,255,.75)','rgba(125,170,230,.22)'),transparent:true,depthWrite:false,fog:false,blending:THREE.AdditiveBlending}));moonGlow.scale.set(85,85,1);moonGroup.add(moonGlow);
 let dayClock=0,daylight=1,lightsOn=true;
 function updateDayNight(dt){
  dayClock=(dayClock+dt/210)%1;
@@ -349,7 +362,15 @@ const clock=new THREE.Clock();
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);updateDayNight(dt);update(dt);
  let offset=camMode===0?new THREE.Vector3(0,6,12):camMode===1?new THREE.Vector3(0,3.1,6.8):new THREE.Vector3(0,22,4);
  const desired=offset.applyAxisAngle(new THREE.Vector3(0,1,0),heading),target=car.root.position.clone().add(desired);camera.position.lerp(target,.09);
- const look=car.root.position.clone();look.y+=camMode===2?0:1.2;camera.lookAt(look);drawMap();
+ const look=car.root.position.clone();look.y+=camMode===2?0:1.2;camera.lookAt(look);
+ const skyPhase=dayClock*Math.PI*2+Math.PI/2,skyX=Math.cos(skyPhase)*430,skyY=65+Math.sin(skyPhase)*300;
+ sunGroup.position.copy(camera.position).add(new THREE.Vector3(skyX,skyY,-80));
+ moonGroup.position.copy(camera.position).add(new THREE.Vector3(-skyX,-skyY+130,-80));
+ sunGroup.quaternion.copy(camera.quaternion);moonGroup.quaternion.copy(camera.quaternion);
+ const sunAlpha=THREE.MathUtils.smoothstep(daylight,.08,.42),moonAlpha=1-THREE.MathUtils.smoothstep(daylight,.48,.82);
+ sunGroup.visible=sunAlpha>.01;moonGroup.visible=moonAlpha>.01;
+ sunGlow.material.opacity=sunAlpha;moonGlow.material.opacity=moonAlpha;
+ drawMap();
  for(const p of pickups)p.position.y=1.5+Math.sin(performance.now()*.002+p.position.x)*.22;
  for(let i=effectParticles.length-1;i>=0;i--){const e=effectParticles[i];e.life-=dt;e.mesh.position.addScaledVector(e.velocity,dt);e.velocity.y-=7*dt;e.mesh.scale.multiplyScalar(.985);e.mesh.material.opacity=Math.max(0,e.life);if(e.life<=0){scene.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose();effectParticles.splice(i,1);}}
  renderer.render(scene,camera);}
