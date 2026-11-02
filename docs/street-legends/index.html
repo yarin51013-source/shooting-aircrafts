@@ -88,9 +88,9 @@ for(let i=0;i<20;i++){const t=makeCar([0x2364ad,0xd5d7d8,0x24272b,0xe6a52d,0xeee
 const pickups=[],coinMat=new THREE.MeshStandardMaterial({color:0xffc12e,emissive:0x8b4b00,metalness:.75,roughness:.2});
 for(let i=0;i<44;i++){const p=new THREE.Mesh(new THREE.TorusGeometry(.8,.17,10,24),coinMat);p.position.set((Math.floor(Math.random()*8)-4)*90+(Math.random()-.5)*42,1.6,(Math.floor(Math.random()*8)-4)*90+(Math.random()-.5)*42);scene.add(p);pickups.push(p);}
 const keys={};let running=false,paused=false,velocity=0,steer=0,heading=0,money=0,camMode=0,health=100;
-addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();
+addEventListener('keydown',e=>{keys[e.code]=true;keys[e.key.toLowerCase()]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)||['KeyW','KeyA','KeyS','KeyD','ShiftLeft','ShiftRight','Space'].includes(e.code))e.preventDefault();
  if(e.key.toLowerCase()==='c')camMode=(camMode+1)%3;if(e.key.toLowerCase()==='r')resetCar();if(e.key.toLowerCase()==='g'&&running)openGarage();if(e.key==='Escape'&&running)togglePause();});
-addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+addEventListener('keyup',e=>{keys[e.code]=false;keys[e.key.toLowerCase()]=false;});
 function toast(t){const el=document.querySelector('#toast');el.textContent=t;el.style.opacity=1;clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.style.opacity=0,1600);}
 function resetCar(){car.root.position.set(0,0,12);heading=0;velocity=0;health=100;toast('CAR RESET');}
 function openGarage(){document.querySelector('#garage').style.display='flex';paused=true;}
@@ -100,7 +100,7 @@ function togglePause(){paused=!paused;document.querySelector('#overlay').style.d
 document.querySelector('#start').onclick=()=>{running=true;paused=false;document.querySelector('#overlay').style.display='none';};
 function update(dt){
  if(!running||paused)return;
- const forward=keys.w||keys.arrowup,back=keys.s||keys.arrowdown,left=keys.a||keys.arrowleft,right=keys.d||keys.arrowright,boost=keys.shift;
+ const forward=keys.KeyW||keys.w||keys.arrowup,back=keys.KeyS||keys.s||keys.arrowdown,left=keys.KeyA||keys.a||keys.arrowleft,right=keys.KeyD||keys.d||keys.arrowright,boost=keys.ShiftLeft||keys.ShiftRight||keys.shift;
  let accel=boost?37:23,max=boost?68:48;if(forward)velocity+=accel*dt;else if(back)velocity-=32*dt;else velocity*=Math.pow(.982,dt*60);
  velocity=THREE.MathUtils.clamp(velocity,-18,max);const speedFactor=Math.min(Math.abs(velocity)/18,1);
  steer+=((left?1:0)-(right?1:0))*dt*2.6;steer*=Math.pow(.86,dt*60);if(keys[' '])velocity*=Math.pow(.94,dt*60);
