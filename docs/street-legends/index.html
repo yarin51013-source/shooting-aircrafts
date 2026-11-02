@@ -377,7 +377,16 @@ function syncRemotePlayers(list){
  document.querySelector('#onlineCount').textContent='PLAYERS: '+(list.length+1);
 }
 document.querySelector('#saveName').addEventListener('click',()=>setPlayerName(document.querySelector('#playerName').value));
-document.querySelector('#playerName').addEventListener('keydown',e=>{if(e.key==='Enter')setPlayerName(e.currentTarget.value);});
+const nameInput=document.querySelector('#playerName');
+nameInput.addEventListener('keydown',e=>{
+ e.stopPropagation();
+ if(e.key==='Enter'){e.preventDefault();setPlayerName(e.currentTarget.value);}
+},true);
+nameInput.addEventListener('keyup',e=>e.stopPropagation(),true);
+nameInput.addEventListener('keypress',e=>e.stopPropagation(),true);
+nameInput.addEventListener('beforeinput',e=>e.stopPropagation(),true);
+nameInput.addEventListener('input',e=>{nameInput.value=nameInput.value.slice(0,18);});
+
 document.querySelector('#playerName').value=playerName;
 connectMultiplayer();
 
@@ -528,8 +537,8 @@ function setSound(on){
 }
 document.querySelector('#soundToggle').addEventListener('click',()=>setSound(!audioEnabled));
 addEventListener('keydown',e=>{
- const typing=e.target instanceof HTMLElement&&(e.target.matches('input,textarea,select')||e.target.isContentEditable);
- if(typing)return;
+ const active=document.activeElement;
+ if(active===document.querySelector('#playerName')||active?.matches?.('input,textarea,select')||active?.isContentEditable)return;
  keys[e.code]=true;keys[e.key.toLowerCase()]=true;
  if((e.code==='ShiftLeft'||e.code==='ShiftRight')&&running&&!paused)nitroPrimed=true;
  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)||['KeyW','KeyA','KeyS','KeyD','ShiftLeft','ShiftRight','Space'].includes(e.code))e.preventDefault();
