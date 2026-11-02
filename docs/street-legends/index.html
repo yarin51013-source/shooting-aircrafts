@@ -78,6 +78,7 @@ const buildings=[];
 const winMat=new THREE.MeshStandardMaterial({color:0xb9d6df,emissive:0x344d5b,emissiveIntensity:.32,roughness:.28,metalness:.12});
 const warmWinMat=new THREE.MeshStandardMaterial({color:0xffd89a,emissive:0xffa94d,emissiveIntensity:.55,roughness:.3});
 const facadeTrim=mat(0xd0c8b8,.72),darkTrim=mat(0x343d43,.7),roofMat=mat(0x41494d,.88);
+const poleMat=mat(0x3c454b,.55,.65),lampMat=new THREE.MeshStandardMaterial({color:0xffe4a2,emissive:0xffb94d,emissiveIntensity:1.5}),signalRed=new THREE.MeshStandardMaterial({color:0xff332b,emissive:0x8b100b}),signalAmber=new THREE.MeshStandardMaterial({color:0xffc23a,emissive:0x805000}),signalGreen=new THREE.MeshStandardMaterial({color:0x42db78,emissive:0x0d6d2b});
 for(let gx=-4;gx<4;gx++)for(let gz=-4;gz<4;gz++)for(let n=0;n<5;n++){
  let x=gx*90+(Math.random()-.5)*57,z=gz*90+(Math.random()-.5)*57;if(Math.abs(x%90)<14||Math.abs(z%90)<14)continue;
  let w=10+Math.random()*15,d=10+Math.random()*15,h=14+Math.random()*62;
@@ -131,7 +132,7 @@ for(let gx=-4;gx<4;gx++)for(let gz=-4;gz<4;gz++)for(let n=0;n<5;n++){
  }
 }
 // Street furniture: lamps, traffic signals and a few small roadside details.
-const poleMat=mat(0x3c454b,.55,.65),lampMat=new THREE.MeshStandardMaterial({color:0xffe4a2,emissive:0xffb94d,emissiveIntensity:1.5}),signalRed=new THREE.MeshStandardMaterial({color:0xff332b,emissive:0x8b100b}),signalAmber=new THREE.MeshStandardMaterial({color:0xffc23a,emissive:0x805000}),signalGreen=new THREE.MeshStandardMaterial({color:0x42db78,emissive:0x0d6d2b});
+
 function streetLamp(x,z){
  const post=new THREE.Mesh(new THREE.CylinderGeometry(.11,.15,6.2,8),poleMat);post.position.set(x,3.1,z);post.castShadow=true;scene.add(post);
  const arm=addBox(.12,.12,1.35,poleMat,x,6.05,z-.58,false);
