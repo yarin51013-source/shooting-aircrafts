@@ -78,7 +78,7 @@ const buildings=[];
 const winMat=new THREE.MeshStandardMaterial({color:0xb9d6df,emissive:0x344d5b,emissiveIntensity:.32,roughness:.28,metalness:.12});
 const warmWinMat=new THREE.MeshStandardMaterial({color:0xffd89a,emissive:0xffa94d,emissiveIntensity:.55,roughness:.3});
 const facadeTrim=mat(0xd0c8b8,.72),darkTrim=mat(0x343d43,.7),roofMat=mat(0x41494d,.88);
-const poleMat=mat(0x3c454b,.55,.65),lampMat=new THREE.MeshStandardMaterial({color:0xffe4a2,emissive:0xffb94d,emissiveIntensity:1.5}),signalRed=new THREE.MeshStandardMaterial({color:0xff332b,emissive:0x8b100b}),signalAmber=new THREE.MeshStandardMaterial({color:0xffc23a,emissive:0x805000}),signalGreen=new THREE.MeshStandardMaterial({color:0x42db78,emissive:0x0d6d2b});
+const lampMat=new THREE.MeshStandardMaterial({color:0xffe4a2,emissive:0xffb94d,emissiveIntensity:1.5}),signalRed=new THREE.MeshStandardMaterial({color:0xff332b,emissive:0x8b100b}),signalAmber=new THREE.MeshStandardMaterial({color:0xffc23a,emissive:0x805000}),signalGreen=new THREE.MeshStandardMaterial({color:0x42db78,emissive:0x0d6d2b});
 for(let gx=-4;gx<4;gx++)for(let gz=-4;gz<4;gz++)for(let n=0;n<5;n++){
  let x=gx*90+(Math.random()-.5)*57,z=gz*90+(Math.random()-.5)*57;if(Math.abs(x%90)<14||Math.abs(z%90)<14)continue;
  let w=10+Math.random()*15,d=10+Math.random()*15,h=14+Math.random()*62;
@@ -134,13 +134,13 @@ for(let gx=-4;gx<4;gx++)for(let gz=-4;gz<4;gz++)for(let n=0;n<5;n++){
 // Street furniture: lamps, traffic signals and a few small roadside details.
 
 function streetLamp(x,z){
- const post=new THREE.Mesh(new THREE.CylinderGeometry(.11,.15,6.2,8),poleMat);post.position.set(x,3.1,z);post.castShadow=true;scene.add(post);
- const arm=addBox(.12,.12,1.35,poleMat,x,6.05,z-.58,false);
- const shade=new THREE.Mesh(new THREE.CylinderGeometry(.34,.25,.16,10),poleMat);shade.position.set(x,5.92,z-1.12);scene.add(shade);
+ const post=new THREE.Mesh(new THREE.CylinderGeometry(.11,.15,6.2,8),darkTrim);post.position.set(x,3.1,z);post.castShadow=true;scene.add(post);
+ const arm=addBox(.12,.12,1.35,darkTrim,x,6.05,z-.58,false);
+ const shade=new THREE.Mesh(new THREE.CylinderGeometry(.34,.25,.16,10),darkTrim);shade.position.set(x,5.92,z-1.12);scene.add(shade);
  const bulb=new THREE.Mesh(new THREE.SphereGeometry(.19,8,8),lampMat);bulb.position.set(x,5.78,z-1.12);scene.add(bulb);
 }
 function trafficSignal(x,z,flip=false){
- const post=new THREE.Mesh(new THREE.CylinderGeometry(.09,.12,4.5,8),poleMat);post.position.set(x,2.25,z);scene.add(post);
+ const post=new THREE.Mesh(new THREE.CylinderGeometry(.09,.12,4.5,8),darkTrim);post.position.set(x,2.25,z);scene.add(post);
  const head=addBox(.42,.95,.35,mat(0x20272b,.5,.35),x,4.1,z,false);
  for(let q=0;q<3;q++){const bulb=new THREE.Mesh(new THREE.SphereGeometry(.12,10,8),[signalRed,signalAmber,signalGreen][q]);bulb.position.set(x,4.4-q*.3,z+.19);scene.add(bulb);}
 }
