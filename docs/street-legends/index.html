@@ -291,6 +291,68 @@ function makeCar(color=0xe52b35,shadowLights=true){
  return {root,bodyMat,wheels:wheelMeshes,brakeLamps,headlights,headlightSpots,taillightSpots,nitroFlames,underglow};
 }
 const car=makeCar();car.root.position.set(0,0,12);
+const localNameTag=makeNameTag(localStorage.getItem('streetLegendsName')||'Player');
+car.root.add(localNameTag);
+let playerId=null,networkSocket=null,lastNetSend=0,playerName=localStorage.getItem('streetLegendsName')||'Player';
+const remotePlayers=new Map();
+function makeNameTag(label){
+ const cv=document.createElement('canvas');cv.width=512;cv.height=128;
+ const ctx=cv.getContext('2d');
+ function draw(text){
+  ctx.clearRect(0,0,512,128);ctx.fillStyle='rgba(5,12,20,.78)';
+  ctx.beginPath();ctx.roundRect(12,12,488,104,22);ctx.fill();
+  ctx.strokeStyle='rgba(255,181,46,.95)';ctx.lineWidth=5;ctx.stroke();
+  ctx.font='bold 48px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle='#fff';ctx.shadowColor='#000';ctx.shadowBlur=8;ctx.fillText(String(text||'Player').slice(0,18),256,65,450);
+  tex.needsUpdate=true;
+ }
+ const tex=new THREE.CanvasTexture(cv);tex.colorSpace=THREE.SRGBColorSpace;
+ const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
+ sprite.scale.set(4.2,1.05,1);sprite.position.set(0,3.25,0);sprite.renderOrder=20;
+ sprite.setLabel=draw;draw(label);return sprite;
+}
+function setPlayerName(value){
+ playerName=String(value||'Player').replace(/[<>]/g,'').trim().slice(0,18)||'Player';
+ document.querySelector('#playerName').value=playerName;
+ localStorage.setItem('streetLegendsName',playerName);
+ localNameTag.setLabel(playerName);
+ if(networkSocket&&networkSocket.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'name',name:playerName}));
+}
+function connectMultiplayer(){
+ const socket=new WebSocket('wss://shooting-aircrafts.onrender.com/street-legends');
+ networkSocket=socket;
+ socket.addEventListener('open',()=>{document.querySelector('#nameStatus').textContent='Online';socket.send(JSON.stringify({type:'name',name:playerName}));});
+ socket.addEventListener('close',()=>{document.querySelector('#nameStatus').textContent='Reconnecting';setTimeout(connectMultiplayer,3500);});
+ socket.addEventListener('error',()=>{document.querySelector('#nameStatus').textContent='Connecting…';});
+ socket.addEventListener('message',event=>{
+  let data;try{data=JSON.parse(event.data)}catch{return}
+  if(data.type==='welcome'){playerId=data.id;syncRemotePlayers(data.players||[]);}
+  if(data.type==='players')syncRemotePlayers(data.players||[]);
+ });
+}
+function syncRemotePlayers(list){
+ const active=new Set();
+ for(const p of list){
+  if(!p||p.id===playerId)continue;
+  active.add(p.id);
+  let item=remotePlayers.get(p.id);
+  if(!item){
+   const remoteCar=makeCar(Number(p.color)||0x2678c9,false);
+   const tag=makeNameTag(p.name);remoteCar.root.add(tag);
+   item={car:remoteCar,tag,targetX:p.x,targetZ:p.z,targetHeading:p.heading,name:p.name};
+   remotePlayers.set(p.id,item);
+  }
+  item.targetX=Number(p.x)||0;item.targetZ=Number(p.z)||0;item.targetHeading=Number(p.heading)||0;
+  if(item.name!==p.name){item.name=p.name;item.tag.setLabel(p.name);}
+ }
+ for(const [id,item] of remotePlayers){if(!active.has(id)){scene.remove(item.car.root);remotePlayers.delete(id);}}
+ document.querySelector('#onlineCount').textContent='PLAYERS: '+(list.length+1);
+}
+document.querySelector('#saveName').addEventListener('click',()=>setPlayerName(document.querySelector('#playerName').value));
+document.querySelector('#playerName').addEventListener('keydown',e=>{if(e.key==='Enter')setPlayerName(e.currentTarget.value);});
+document.querySelector('#playerName').value=playerName;
+connectMultiplayer();
+
 // Lightweight car lighting and soft contact shadows; no expensive real-time shadow maps.
 const effectParticles=[];
 function burst(position,color,count=12){
@@ -518,6 +580,16 @@ function drawMap(){ctx.clearRect(0,0,132,132);ctx.fillStyle='#172a32';ctx.fillRe
  ctx.save();ctx.translate(66,66);ctx.rotate(-heading);ctx.fillStyle='#ff4848';ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(6,7);ctx.lineTo(0,4);ctx.lineTo(-6,7);ctx.closePath();ctx.fill();ctx.restore();}
 const clock=new THREE.Clock();
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);updateDayNight(dt);update(dt);
+ for(const item of remotePlayers.values()){
+  item.car.root.position.x=THREE.MathUtils.lerp(item.car.root.position.x,item.targetX,.22);
+  item.car.root.position.z=THREE.MathUtils.lerp(item.car.root.position.z,item.targetZ,.22);
+  let delta=((item.targetHeading-item.car.root.rotation.y+Math.PI*3)%(Math.PI*2))-Math.PI;
+  item.car.root.rotation.y+=delta*.22;
+ }
+ if(networkSocket&&networkSocket.readyState===WebSocket.OPEN&&performance.now()-lastNetSend>90){
+  lastNetSend=performance.now();
+  networkSocket.send(JSON.stringify({type:'state',x:car.root.position.x,z:car.root.position.z,heading:car.root.rotation.y}));
+ }
  let offset=camMode===0?new THREE.Vector3(0,6,12):camMode===1?new THREE.Vector3(0,3.1,6.8):new THREE.Vector3(0,22,4);
  const desired=offset.applyAxisAngle(new THREE.Vector3(0,1,0),heading),target=car.root.position.clone().add(desired);camera.position.lerp(target,.09);
  const look=car.root.position.clone();look.y+=camMode===2?0:1.2;camera.lookAt(look);
