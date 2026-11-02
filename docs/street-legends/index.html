@@ -11,7 +11,7 @@
 #mission{position:absolute;top:18px;right:20px;padding:13px 16px;width:230px}.small{font-size:10px;color:#ffbd4a;letter-spacing:2px;font-weight:bold}#mission strong{display:block;font-size:15px;margin-top:5px}#mission p{margin:5px 0 0;color:#b9c4cf;font-size:11px;line-height:1.4}
 #help{position:absolute;left:20px;bottom:18px;padding:11px 14px;font-size:11px;line-height:1.8;color:#d4dce5}#help b{color:#fff}
 #speedbox{position:absolute;right:20px;bottom:18px;padding:12px 18px;min-width:165px;text-align:right}#speed{font-size:52px;font-weight:900;line-height:1;letter-spacing:-2px}#unit{font-size:11px;color:#aab6c4;letter-spacing:2px}#gear{font-size:12px;color:#ffbd4a;margin-top:6px}
-#soundToggle{position:absolute;left:20px;top:164px;pointer-events:auto;padding:8px 11px;border:1px solid #ffffff55;border-radius:9px;background:linear-gradient(120deg,#263b4c,#101b27);color:#fff;font-size:11px;font-weight:900;letter-spacing:.7px;box-shadow:0 4px 15px #0006}#soundToggle.off{background:#20242a;color:#aab3bc}#lightToggle{position:absolute;right:205px;bottom:28px;pointer-events:auto;margin:0;padding:11px 15px;border:1px solid #ffffff55;border-radius:10px;background:linear-gradient(120deg,#eaf5ff,#9fc8e8);color:#10202d;font-size:12px;font-weight:900;letter-spacing:.7px;box-shadow:0 5px 20px #0007}#lightToggle.off{background:linear-gradient(120deg,#293744,#111a23);color:#d4dde5}
+#soundToggle{position:absolute;left:20px;top:260px;pointer-events:auto;padding:8px 11px;border:1px solid #ffffff55;border-radius:9px;background:linear-gradient(120deg,#263b4c,#101b27);color:#fff;font-size:11px;font-weight:900;letter-spacing:.7px;box-shadow:0 4px 15px #0006}#soundToggle.off{background:#20242a;color:#aab3bc}#lightToggle{position:absolute;right:205px;bottom:28px;pointer-events:auto;margin:0;padding:11px 15px;border:1px solid #ffffff55;border-radius:10px;background:linear-gradient(120deg,#eaf5ff,#9fc8e8);color:#10202d;font-size:12px;font-weight:900;letter-spacing:.7px;box-shadow:0 5px 20px #0007}#lightToggle.off{background:linear-gradient(120deg,#293744,#111a23);color:#d4dde5}
 #minimap{position:absolute;left:20px;top:117px;width:132px;height:132px;border-radius:50%;border:2px solid #ffffff88;background:#14202b;box-shadow:0 5px 22px #0008}
 #toast{position:absolute;top:23%;left:50%;transform:translate(-50%,-50%);font-size:20px;font-weight:900;letter-spacing:2px;text-shadow:0 3px 15px #000;opacity:0;transition:opacity .2s}
 #overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(120deg,#040a12e8,#040a1288);pointer-events:auto}
@@ -365,9 +365,9 @@ function updateAudio(){
  engineOsc.frequency.setTargetAtTime(rpm, audioCtx.currentTime,.06);
  engineOsc2.frequency.setTargetAtTime(rpm*1.51,audioCtx.currentTime,.07);
  engineFilter.frequency.setTargetAtTime(260+speed*24,audioCtx.currentTime,.08);
- engineGain.gain.setTargetAtTime(active?.075+Math.min(speed/70,.9)*.13:0,audioCtx.currentTime,.12);
+ engineGain.gain.setTargetAtTime(active ? .075+Math.min(speed/70,.9)*.13 : 0,audioCtx.currentTime,.12);
  const drifting=active&&keys[' ']&&speed>17&&(keys.KeyA||keys.a||keys.arrowleft||keys.KeyD||keys.d||keys.arrowright);
- tireGain.gain.setTargetAtTime(drifting?.12:0,audioCtx.currentTime,.09);
+ tireGain.gain.setTargetAtTime(drifting ? .12 : 0,audioCtx.currentTime,.09);
  const boost=keys.ShiftLeft||keys.ShiftRight||keys.shift;
  if(active&&nitroPrimed&&boost&&speed>5&&!nitroWasOn)playSfx('nitro');
  nitroWasOn=!!(active&&nitroPrimed&&boost&&speed>5);
@@ -389,9 +389,9 @@ function setLights(on){lightsOn=on;const b=document.querySelector('#lightToggle'
 document.querySelector('#lightToggle').addEventListener('click',()=>setLights(!lightsOn));
 document.querySelector('#closeGarage').onclick=()=>{document.querySelector('#garage').style.display='none';paused=false;};
 function togglePause(){paused=!paused;document.querySelector('#overlay').style.display=paused?'flex':'none';document.querySelector('#menu h1').innerHTML=paused?'GAME<br><span>PAUSED</span>':'STREET<br><span>LEGENDS</span>';document.querySelector('#menu p').textContent=paused?'Take a breather. The city will be waiting.':'Take the wheel of your sports car and explore the city.';document.querySelector('#start').textContent=paused?'RESUME DRIVING →':'START DRIVING →';}
-document.querySelector('#start').onclick=()=>{initAudio();nitroPrimed=false;keys.ShiftLeft=false;keys.ShiftRight=false;keys.shift=false;velocity=0;driftAngle=0;running=true;paused=false;document.querySelector('#overlay').style.display='none';};
+document.querySelector('#start').onclick=()=>{initAudio();hideNitroFlames();nitroPrimed=false;keys.ShiftLeft=false;keys.ShiftRight=false;keys.shift=false;velocity=0;driftAngle=0;running=true;paused=false;document.querySelector('#overlay').style.display='none';};
 function update(dt){
- if(!running||paused){hideNitroFlames();return;}
+ if(!running||paused){hideNitroFlames();updateAudio();return;}
  const forward=keys.KeyW||keys.w||keys.arrowup,back=keys.KeyS||keys.s||keys.arrowdown,left=keys.KeyA||keys.a||keys.arrowleft,right=keys.KeyD||keys.d||keys.arrowright,boost=keys.ShiftLeft||keys.ShiftRight||keys.shift;
  let accel=boost?37:23,max=boost?68:48;if(forward)velocity+=accel*dt;else if(back)velocity-=32*dt;else velocity*=Math.pow(.982,dt*60);
  velocity=THREE.MathUtils.clamp(velocity,-18,max);const speedFactor=Math.min(Math.abs(velocity)/18,1);
