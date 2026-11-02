@@ -103,7 +103,7 @@ function update(dt){
  const forward=keys.w||keys.arrowup,back=keys.s||keys.arrowdown,left=keys.a||keys.arrowleft,right=keys.d||keys.arrowright,boost=keys.shift;
  let accel=boost?37:23,max=boost?68:48;if(forward)velocity+=accel*dt;else if(back)velocity-=32*dt;else velocity*=Math.pow(.982,dt*60);
  velocity=THREE.MathUtils.clamp(velocity,-18,max);const speedFactor=Math.min(Math.abs(velocity)/18,1);
- steer+=((right?1:0)-(left?1:0))*dt*2.6;steer*=Math.pow(.86,dt*60);if(keys[' '])velocity*=Math.pow(.94,dt*60);
+ steer+=((left?1:0)-(right?1:0))*dt*2.6;steer*=Math.pow(.86,dt*60);if(keys[' '])velocity*=Math.pow(.94,dt*60);
  heading+=steer*speedFactor*velocity*.012*dt*60;car.root.rotation.y=heading;const old=car.root.position.clone();
  car.root.position.x-=Math.sin(heading)*velocity*dt;car.root.position.z-=Math.cos(heading)*velocity*dt;
  car.root.position.x=THREE.MathUtils.clamp(car.root.position.x,-475,475);car.root.position.z=THREE.MathUtils.clamp(car.root.position.z,-475,475);
