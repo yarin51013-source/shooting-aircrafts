@@ -58,6 +58,7 @@ button{border:0;border-radius:10px;padding:14px 22px;background:linear-gradient(
 <div id="overlay"><div id="menu"><div class="small">3D OPEN WORLD • PC DRIVING</div><h1>STREET<br><span>LEGENDS</span></h1><p>Take the wheel of your sports car. Explore a full 3D city, dodge traffic, hit the nitro and collect cash.</p><div><span class="tag">3D CITY</span><span class="tag">TRAFFIC</span><span class="tag">NITRO</span><span class="tag">GARAGE</span></div><button id="start">START DRIVING →</button><p style="font-size:11px;margin-bottom:0">Best on desktop • WASD or arrow keys</p></div></div>
 <div id="garage"><div class="card panel"><div class="small">YOUR GARAGE</div><h2 style="margin:7px 0">Customize your ride</h2><p style="color:#b9c4cf;font-size:13px">Choose a paint job for your car.</p><div class="swatches">
 <div class="swatch" data-color="#e52b35" style="background:#e52b35"></div><div class="swatch" data-color="#1678e8" style="background:#1678e8"></div><div class="swatch" data-color="#f0f0f0" style="background:#f0f0f0"></div><div class="swatch" data-color="#17191e" style="background:#17191e"></div><div class="swatch" data-color="#ffb52e" style="background:#ffb52e"></div><div class="swatch" data-color="#26c99a" style="background:#26c99a"></div></div><button id="closeGarage">BACK TO CITY</button></div></div>
+<script src="engine-audio.js"></script>
 <script type="module">
 import * as THREE from 'three';
 const canvas=document.querySelector('#game');
@@ -536,11 +537,18 @@ const pickups=[],coinMat=new THREE.MeshStandardMaterial({color:0xffc12e,emissive
 for(let i=0;i<60;i++){const p=new THREE.Mesh(new THREE.TorusGeometry(.8,.17,10,24),coinMat);p.position.set((Math.floor(Math.random()*12)-6)*90+(Math.random()-.5)*42,1.6,(Math.floor(Math.random()*8)-4)*90+(Math.random()-.5)*42);scene.add(p);pickups.push(p);}
 const keys={};let running=false,paused=false,nitroPrimed=false,velocity=0,steer=0,heading=0,driftAngle=0,money=0,camMode=0,health=100;
 // Procedural audio: no downloads or extra assets. Audio starts after the player's first click.
-let audioCtx=null,engineOsc=null,engineOsc2=null,engineGain=null,engineFilter=null,highSpeedOsc=null,highSpeedOsc2=null,highSpeedGain=null,highSpeedFilter=null,engineNoise=null,engineNoiseGain=null,engineNoiseFilter=null,tireNoise=null,tireGain=null,audioEnabled=true,nitroWasOn=false,lastAudioGear=1;
+let audioCtx=null,engineOsc=null,engineOsc2=null,engineGain=null,engineFilter=null,highSpeedOsc=null,highSpeedOsc2=null,highSpeedGain=null,highSpeedFilter=null,engineNoise=null,engineNoiseGain=null,engineNoiseFilter=null,tireNoise=null,tireGain=null,engineSampleAudio=null,engineSampleSource=null,engineSampleGain=null,engineSampleFilter=null,audioEnabled=true,nitroWasOn=false,lastAudioGear=1;
 function initAudio(){
  if(audioCtx){if(audioCtx.state==='suspended')audioCtx.resume();return;}
  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
  audioCtx=new AC();
+ // Use the exact engine audio supplied by the player, with speed-sensitive playback.
+ if(window.STREET_LEGENDS_ENGINE_AUDIO){
+  engineSampleAudio=new Audio(window.STREET_LEGENDS_ENGINE_AUDIO);engineSampleAudio.loop=true;engineSampleAudio.preload='auto';engineSampleAudio.volume=1;
+  engineSampleSource=audioCtx.createMediaElementSource(engineSampleAudio);engineSampleFilter=audioCtx.createBiquadFilter();engineSampleFilter.type='lowpass';engineSampleFilter.frequency.value=5200;
+  engineSampleGain=audioCtx.createGain();engineSampleGain.gain.value=0;engineSampleSource.connect(engineSampleFilter);engineSampleFilter.connect(engineSampleGain);engineSampleGain.connect(audioCtx.destination);
+  engineSampleAudio.play().catch(()=>{});
+ }
  engineOsc=audioCtx.createOscillator();engineOsc.type='sawtooth';
  engineOsc2=audioCtx.createOscillator();engineOsc2.type='triangle';
  engineFilter=audioCtx.createBiquadFilter();engineFilter.type='lowpass';engineFilter.frequency.value=420;
@@ -613,9 +621,16 @@ function updateAudio(){
  engineOsc.frequency.setTargetAtTime(rpm,now,.075);
  engineOsc2.frequency.setTargetAtTime(rpm*2.01,now,.085);
  engineFilter.frequency.setTargetAtTime(310+gearProgress*620+load*390+revving*300,now,.09);
- engineGain.gain.setTargetAtTime(active?(.12+gearProgress*.025+load*.045+revving*.035):0,now,.11);
+ engineGain.gain.setTargetAtTime(0,now,.08);
  engineNoiseFilter.frequency.setTargetAtTime(420+rpm*8+throttle*850,now,.1);
- engineNoiseGain.gain.setTargetAtTime(active?(.012+throttle*.035+revving*.025):0,now,.13);
+ engineNoiseGain.gain.setTargetAtTime(0,now,.08);
+ if(engineSampleAudio&&engineSampleGain){
+  const sampleRate=THREE.MathUtils.clamp(.78+speed/78+throttle*.10+(boost?.12:0),.78,1.72);
+  engineSampleAudio.playbackRate=sampleRate;
+  if(engineSampleAudio.paused&&active)engineSampleAudio.play().catch(()=>{});
+  engineSampleGain.gain.setTargetAtTime(active?.78:0,now,.16);
+  engineSampleFilter.frequency.setTargetAtTime(3000+throttle*2200+speed*18,now,.18);
+ }
  if(active&&throttle&&gear>lastAudioGear)playSfx('shift');
  lastAudioGear=gear;
  // High-RPM exhaust harmonics become prominent above 173 km/h.
@@ -623,7 +638,7 @@ function updateAudio(){
  highSpeedOsc.frequency.setTargetAtTime(105+rpm*1.65+throttle*35,now,.06);
  highSpeedOsc2.frequency.setTargetAtTime(165+rpm*2.25+throttle*48,now,.07);
  highSpeedFilter.frequency.setTargetAtTime(580+highSpeed*1450+throttle*440,now,.08);
- highSpeedGain.gain.setTargetAtTime(active?highSpeed*(.045+throttle*.105):0,now,.12);
+ highSpeedGain.gain.setTargetAtTime(0,now,.08);
  const drifting=active&&keys[' ']&&speed>17&&(keys.KeyA||keys.a||keys.arrowleft||keys.KeyD||keys.d||keys.arrowright);
  tireGain.gain.setTargetAtTime(drifting ? .12 : 0,now,.09);
  if(active&&nitroPrimed&&boost&&speed>5&&!nitroWasOn)playSfx('nitro');
@@ -631,7 +646,7 @@ function updateAudio(){
 }
 function setSound(on){
  audioEnabled=on;const b=document.querySelector('#soundToggle');b.textContent='SOUND: '+(on?'ON':'OFF');b.classList.toggle('off',!on);
- if(on)initAudio();else{nitroWasOn=false;if(audioCtx&&engineGain){engineGain.gain.setTargetAtTime(0,audioCtx.currentTime,.04);tireGain.gain.setTargetAtTime(0,audioCtx.currentTime,.04);}}
+ if(on)initAudio();else{nitroWasOn=false;if(audioCtx&&engineGain){engineGain.gain.setTargetAtTime(0,audioCtx.currentTime,.04);if(engineSampleGain)engineSampleGain.gain.setTargetAtTime(0,audioCtx.currentTime,.04);tireGain.gain.setTargetAtTime(0,audioCtx.currentTime,.04);}}
 }
 document.querySelector('#soundToggle').addEventListener('click',()=>setSound(!audioEnabled));
 addEventListener('keydown',e=>{
