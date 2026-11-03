@@ -615,7 +615,8 @@ function updateAudio(){
  engineFilter.frequency.setTargetAtTime(420+gearProgress*260+load*360+revving*380,now,.09);
  engineGain.gain.setTargetAtTime(active?.145+throttle*.075+(boost?.018:0):.0001,now,.1);
  engineNoiseFilter.frequency.setTargetAtTime(620+gearProgress*220+throttle*1050,now,.1);
- engineNoiseGain.gain.setTargetAtTime(active?.012+throttle*.018:.0001,now,.12);
+ // Removed the buzzy/farty intake-noise layer; keep engine revs, gear shifts, tire sounds and other effects.
+ engineNoiseGain.gain.setTargetAtTime(.0001,now,.12);
  if(active&&throttle&&gear>lastAudioGear)playSfx('shift');
  lastAudioGear=gear;
  const highSpeed=Math.max(0,Math.min(1,(speed-48.1)/9));
