@@ -622,15 +622,15 @@ function updateAudio(){
  engineOsc2.frequency.setTargetAtTime(rpm*2.01,now,.085);
  engineFilter.frequency.setTargetAtTime(360+gearProgress*760+load*520+revving*420,now,.09);
  // Throaty, layered performance-car engine: low rumble at idle, louder revs under throttle.
- const engineVolume=active?(speed<1?.055:.105+throttle*.075+Math.min(.045,speed/900)):.0001;
+ const engineVolume=.0001; // The recorded engine sample is the only engine tone.
  engineGain.gain.setTargetAtTime(engineVolume,now,.08);
  engineNoiseFilter.frequency.setTargetAtTime(360+rpm*9+throttle*1050,now,.1);
- engineNoiseGain.gain.setTargetAtTime(active?(speed<1?.012:.025+throttle*.035):.0001,now,.1);
+ engineNoiseGain.gain.setTargetAtTime(.0001,now,.1);
  if(engineSampleAudio&&engineSampleGain){
-  const sampleRate=THREE.MathUtils.clamp(.78+speed/78+throttle*.10+(boost?.12:0),.78,1.72);
+  const sampleRate=THREE.MathUtils.clamp(.82+speed/82+throttle*.06+(boost?.08:0),.82,1.72);
   engineSampleAudio.playbackRate=sampleRate;
   if(engineSampleAudio.paused&&active)engineSampleAudio.play().catch(()=>{});
-  engineSampleGain.gain.setTargetAtTime(active?.78:0,now,.16);
+  engineSampleGain.gain.setTargetAtTime(active?.62:0,now,.16);
   engineSampleFilter.frequency.setTargetAtTime(3000+throttle*2200+speed*18,now,.18);
  }
  if(active&&throttle&&gear>lastAudioGear)playSfx('shift');
@@ -640,10 +640,10 @@ function updateAudio(){
  highSpeedOsc.frequency.setTargetAtTime(105+rpm*1.65+throttle*35,now,.06);
  highSpeedOsc2.frequency.setTargetAtTime(165+rpm*2.25+throttle*48,now,.07);
  highSpeedFilter.frequency.setTargetAtTime(580+highSpeed*1450+throttle*440,now,.08);
- highSpeedGain.gain.setTargetAtTime(active?(.018+highSpeed*.055+throttle*.018):.0001,now,.08);
+ highSpeedGain.gain.setTargetAtTime(.0001,now,.08);
  const drifting=active&&keys[' ']&&speed>17&&(keys.KeyA||keys.a||keys.arrowleft||keys.KeyD||keys.d||keys.arrowright);
  tireGain.gain.setTargetAtTime(drifting ? .12 : 0,now,.09);
- if(active&&nitroPrimed&&boost&&speed>5&&!nitroWasOn)playSfx('nitro');
+ // Nitro is visual + acceleration only; no synthetic low-pitched boom.
  nitroWasOn=!!(active&&nitroPrimed&&boost&&speed>5);
 }
 function setSound(on){
@@ -787,7 +787,7 @@ function drawMap(){ctx.clearRect(0,0,132,132);ctx.fillStyle='#172a32';ctx.fillRe
 const clock=new THREE.Clock();
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);updateDayNight(dt);update(dt);
  if(raceState&&raceState.status==='running'){const elapsed=Date.now()-(raceState.startedAt||Date.now());const t=document.querySelector('#raceHudTimer');if(t)t.textContent=formatRaceTime(elapsed);const panelTimer=document.querySelector('#raceTimer');if(panelTimer)panelTimer.textContent=formatRaceTime(elapsed);}const countdown=document.querySelector('#raceCountdown');if(countdown){if(raceState&&raceState.status==='countdown'){const left=Math.max(0,Math.ceil(((raceState.startedAt||Date.now())-Date.now())/1000));countdown.style.display='flex';countdown.textContent=left>0?String(left):'GO!';}else{countdown.style.display='none';}}
- if(raceState&&raceState.status==='running'&&Math.abs(velocity)>5&&car.root.position.y<.8){for(const pad of raceBoostPads){if(Math.hypot(car.root.position.x-pad.x,car.root.position.z-pad.z)<6.5&&Date.now()-pad.lastHit>2600){pad.lastHit=Date.now();racePadBoostUntil=Date.now()+2000;velocity=Math.min(76,velocity+22);toast('BOOST!');playSfx('nitro');}}}
+ if(raceState&&raceState.status==='running'&&Math.abs(velocity)>5&&car.root.position.y<.8){for(const pad of raceBoostPads){if(Math.hypot(car.root.position.x-pad.x,car.root.position.z-pad.z)<6.5&&Date.now()-pad.lastHit>2600){pad.lastHit=Date.now();racePadBoostUntil=Date.now()+2000;velocity=Math.min(76,velocity+22);toast('BOOST!');}}}
   if(raceState&&raceBots.length){const bots=(raceState.participants||[]).filter(p=>p.bot);for(let i=0;i<raceBots.length;i++){const b=raceBots[i],p=bots[i];if(!p)continue;const runningRace=raceState.status==='running';const elapsed=runningRace?Math.max(0,(Date.now()-(raceState.startedAt||Date.now()))/1000):0;const slot=(raceState.participants||[]).filter(q=>q.bot).findIndex(q=>q.id===p.id);const gridIndex=(raceState.participants||[]).findIndex(q=>q.id===p.id);const row=Math.floor(Math.max(0,gridIndex)/2),lane=(gridIndex%2===0?-1:1)*7;const rx=raceCenter.rx,rz=raceCenter.rz-lane;const startAngle=-Math.PI/2-row*8/rx;const angularSpeed=.31+(slot%4)*.018;const angle=startAngle+(runningRace?elapsed*angularSpeed:0);const drift=runningRace?Math.pow(Math.abs(Math.cos(angle)),5):0;const slip=Math.sin(elapsed*2.8+slot)*.008;const driftSide=(Math.sin(angle)>=0?1:-1)*drift*1.0;b.root.position.set(raceCenter.x+Math.cos(angle)*rx+Math.sin(angle)*driftSide,.02,Math.sin(angle)*rz);const tangent=Math.atan2(Math.sin(angle)*rx,-Math.cos(angle)*rz);b.root.rotation.y=tangent+(Math.sin(angle)>=0?1:-1)*drift*.30+slip;if(runningRace){b.wheels.forEach(w=>w.rotation.x+=dt*22);b.root.rotation.z=Math.sin(elapsed*8+i)*drift*.035;}}}
  for(const item of remotePlayers.values()){
   item.car.root.position.x=THREE.MathUtils.lerp(item.car.root.position.x,item.targetX,.22);
