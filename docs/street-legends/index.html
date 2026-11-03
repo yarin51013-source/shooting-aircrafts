@@ -427,6 +427,50 @@ function makeCar(color=0xe52b35,shadowLights=true){
  const underglow=new THREE.Mesh(new THREE.PlaneGeometry(1.8,3.5),new THREE.MeshBasicMaterial({color:0x27aaff,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}));underglow.rotation.x=-Math.PI/2;underglow.position.y=.07;root.add(underglow);
  return {root,bodyMat,body,hood,cabin,roof,wheels:wheelMeshes,rimMat:rim,spoiler,brakeLamps,headlights,headlightSpots,taillightSpots,nitroFlames,underglow};
 }
+
+function applyVehicleStyle(vehicle,model='starter',mods=[]){
+ const specs={
+  starter:{body:[1,1],cabin:[1,1],hood:[1,1],roof:[1,1]},
+  supra:{body:[1.04,1.08],cabin:[.92,.96],hood:[1.08,1.08],roof:[.92,.96]},
+  gtr:{body:[1.1,1.12],cabin:[1.04,1.03],hood:[1.16,1.12],roof:[1.02,1.02]},
+  porsche:{body:[.98,1.02],cabin:[.86,.94],hood:[.94,1.14],roof:[.88,.9]},
+  huracan:{body:[1.08,1.1],cabin:[.82,.88],hood:[1.2,1.12],roof:[.8,.84]}
+ };
+ const q=specs[model]||specs.starter;
+ vehicle.root.scale.set(1,1,1);
+ vehicle.body.scale.set(q.body[0],1,q.body[1]);
+ vehicle.hood.scale.set(q.hood[0],1,q.hood[1]);
+ vehicle.cabin.scale.set(q.cabin[0],1,q.cabin[1]);
+ vehicle.roof.scale.set(q.cabin[0],1,q.cabin[1]);
+ vehicle.wheels.forEach(w=>w.scale.set(q.body[0],1,q.body[1]));
+ if(vehicle.modelDetails){vehicle.root.remove(vehicle.modelDetails);vehicle.modelDetails.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});}
+ const details=new THREE.Group();vehicle.modelDetails=details;vehicle.root.add(details);
+ const matDark=new THREE.MeshStandardMaterial({color:0x111820,roughness:.38,metalness:.55});
+ const matCarbon=new THREE.MeshStandardMaterial({color:0x20252b,roughness:.32,metalness:.7});
+ const addBox=(w,h,d,x,y,z,m=matDark)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=true;details.add(o);return o;};
+ if(model==='supra'){
+  addBox(2.05,.09,.34,0,1.57,2.02,matCarbon);
+  for(const x of [-.7,.7])addBox(.09,.36,.12,x,1.39,1.91,matCarbon);
+  addBox(1.55,.12,.48,0,.57,-2.24);
+ }else if(model==='gtr'){
+  addBox(2.3,.13,.55,0,.57,-2.25,matCarbon);
+  for(const x of [-.88,.88]){addBox(.13,.22,3.25,x,.55,.05,matCarbon);addBox(.36,.07,.48,x,.94,-1.65);}
+  addBox(1.85,.12,.34,0,1.58,2.02,matDark);
+ }else if(model==='porsche'){
+  addBox(1.55,.12,.6,0,.55,-2.22,matCarbon);
+  addBox(1.65,.08,.42,0,1.55,1.8,matDark);
+  for(const x of [-.78,.78])addBox(.28,.13,.42,x,1.02,-2.18,matCarbon);
+ }else if(model==='huracan'){
+  addBox(2.35,.12,.58,0,.55,-2.25,matCarbon);
+  for(const x of [-1,1]){addBox(.18,.25,2.5,x,.53,.05,matCarbon);addBox(.28,.22,.52,x,1.02,.7,matDark);}
+  addBox(1.8,.1,.4,0,1.42,1.98,matDark);
+ }
+ vehicle.spoiler.visible=mods.includes('wing');
+ vehicle.underglow.material.color.set(0x168cff);
+ vehicle.underglow.material.opacity=mods.includes('neon')?.62:0;
+ vehicle.rimMat.color.set(mods.includes('gold')?0xd5a52c:0x9ba5ad);
+}
+
 const car=makeCar();car.root.position.set(0,0,12);
 const localNameTag=makeNameTag(localStorage.getItem('streetLegendsName')||'Player');
 car.root.add(localNameTag);
@@ -525,11 +569,14 @@ function syncRemotePlayers(list){
   if(!item){
    const remoteCar=makeCar(Number(p.color)||0x2678c9,false);
    const tag=makeNameTag(p.name);remoteCar.root.add(tag);
-   item={car:remoteCar,tag,targetX:p.x,targetZ:p.z,targetHeading:p.heading,name:p.name};
+   item={car:remoteCar,tag,targetX:p.x,targetZ:p.z,targetHeading:p.heading,name:p.name,appearance:''};
    remotePlayers.set(p.id,item);
   }
   item.targetX=Number(p.x)||0;item.targetZ=Number(p.z)||0;item.targetHeading=Number(p.heading)||0;
   if(item.name!==p.name){item.name=p.name;item.tag.setLabel(p.name);}
+  const appearance=String(p.model||'starter')+'|'+(Array.isArray(p.mods)?p.mods.join(','):'');
+  if(item.appearance!==appearance){item.appearance=appearance;applyVehicleStyle(item.car,p.model||'starter',Array.isArray(p.mods)?p.mods:[]);}
+  if(p.color&&item.car.bodyMat)item.car.bodyMat.color.set(Number(p.color));
  }
  for(const [id,item] of remotePlayers){if(!active.has(id)){scene.remove(item.car.root);remotePlayers.delete(id);}}
  document.querySelector('#onlineCount').textContent='PLAYERS: '+(list.length+1);
@@ -721,14 +768,8 @@ const dealerMods=[['Carbon GT Wing','wing',2400],['Blue Neon Underglow','neon',1
 let dealerTab='cars',garageNearLastFrame=false,ownedCars=JSON.parse(localStorage.getItem('slCars')||'["starter"]'),ownedMods=JSON.parse(localStorage.getItem('slMods')||'[]'),equippedMods=JSON.parse(localStorage.getItem('slEquippedMods')||localStorage.getItem('slMods')||'[]'),activeDealerCar=localStorage.getItem('slCar')||'starter',dealerPaint=localStorage.getItem('slPaint')||'#e52b35';
 function saveDealer(){localStorage.setItem('slCars',JSON.stringify(ownedCars));localStorage.setItem('slMods',JSON.stringify(ownedMods));localStorage.setItem('slEquippedMods',JSON.stringify(equippedMods));localStorage.setItem('slCar',activeDealerCar);localStorage.setItem('slPaint',dealerPaint);}
 function applyDealer(){
- const v=dealerCars.find(x=>x[1]===activeDealerCar)||dealerCars[0];
- car.root.scale.set(1,1,1);
- car.body.scale.set(v[3],1,v[4]);car.hood.scale.set(v[3],1,v[4]);car.cabin.scale.set(v[5],1,v[6]);car.roof.scale.set(v[5],1,v[6]);
- car.wheels.forEach(w=>{w.scale.set(v[3],1,v[4]);});
+ applyVehicleStyle(car,activeDealerCar,equippedMods);
  car.bodyMat.color.set(dealerPaint);
- if(car.spoiler)car.spoiler.visible=equippedMods.includes('wing');
- if(car.underglow){car.underglow.material.color.set(0x168cff);car.underglow.material.opacity=equippedMods.includes('neon')?.48:0;}
- if(car.rimMat)car.rimMat.color.set(equippedMods.includes('gold')?0xd5a52c:0x9ba5ad);
 }
 function renderDealer(){
  const host=document.querySelector('#dealerItems');host.innerHTML='';document.querySelector('#dealerCash').textContent=money.toLocaleString();
@@ -906,7 +947,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  }
  if(networkSocket&&networkSocket.readyState===WebSocket.OPEN&&performance.now()-lastNetSend>90){
   lastNetSend=performance.now();
-  networkSocket.send(JSON.stringify({type:'state',x:car.root.position.x,z:car.root.position.z,heading:car.root.rotation.y}));
+  networkSocket.send(JSON.stringify({type:'state',x:car.root.position.x,z:car.root.position.z,heading:car.root.rotation.y,model:activeDealerCar||'starter',mods:equippedMods||[],color:0xe52b35}));
  }
  let offset=camMode===0?new THREE.Vector3(0,6,12):camMode===1?new THREE.Vector3(0,3.1,6.8):new THREE.Vector3(0,22,4);
  const desired=offset.applyAxisAngle(new THREE.Vector3(0,1,0),heading),target=car.root.position.clone().add(desired);camera.position.lerp(target,.09);
