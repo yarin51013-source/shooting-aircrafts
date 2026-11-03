@@ -595,7 +595,7 @@ function playSfx(kind){
   tailGain.gain.setValueAtTime(.0001,now+.11);tailGain.gain.exponentialRampToValueAtTime(.24,now+.13);tailGain.gain.exponentialRampToValueAtTime(.0001,now+.64);
   tail.connect(tailGain);tailGain.connect(audioCtx.destination);tail.start(now+.11);tail.stop(now+.66);
  }
- else if(kind==='shift'){osc.type='sawtooth';osc.frequency.setValueAtTime(310,now);osc.frequency.exponentialRampToValueAtTime(125,now+.095);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.095,now+.008);gain.gain.exponentialRampToValueAtTime(.0001,now+.16);osc.start(now);osc.stop(now+.17);}
+ else if(kind==='shift'){osc.type='sine';osc.frequency.setValueAtTime(760,now);osc.frequency.exponentialRampToValueAtTime(430,now+.055);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.035,now+.004);gain.gain.exponentialRampToValueAtTime(.0001,now+.075);osc.start(now);osc.stop(now+.08);}
 }
 function updateAudio(){
  if(!audioCtx||!engineGain)return;
