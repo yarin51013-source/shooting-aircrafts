@@ -81,6 +81,7 @@ wss.on('connection',ws=>{
  ws.on('message',raw=>{
   let msg;try{msg=JSON.parse(raw.toString())}catch{return}
   if(msg.type==='name'){player.name=cleanName(msg.name);if(raceState){const rp=raceState.participants.find(p=>p.id===id);if(rp)rp.name=player.name;broadcastRace();}return;}
+  if(msg.type==='owner-set-money'){const supplied=String(msg.key||''),secret=String(process.env.STREET_LEGENDS_OWNER_KEY||'');if(!secret||supplied.length!==secret.length||!crypto.timingSafeEqual(Buffer.from(supplied),Buffer.from(secret))){send(ws,{type:'owner-money-result',ok:false,message:'Owner verification failed.'});return;}const amount=Number(msg.amount);if(!Number.isSafeInteger(amount)||amount<0||amount>1000000000){send(ws,{type:'owner-money-result',ok:false,message:'Enter an amount from 0 to 1,000,000,000.'});return;}send(ws,{type:'owner-money-result',ok:true,amount});return;}
   if(msg.type==='race-create'){
    if(raceState&&raceState.status!=='complete')return;
    const maxPlayers=Math.max(2,Math.min(8,Math.floor(Number(msg.maxPlayers)||6)));
