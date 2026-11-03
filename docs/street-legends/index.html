@@ -544,9 +544,7 @@ function initAudio(){
  audioCtx=new AC();
  // Use the exact engine audio supplied by the player, with speed-sensitive playback.
  if(window.STREET_LEGENDS_ENGINE_AUDIO){
-  engineSampleAudio=new Audio(window.STREET_LEGENDS_ENGINE_AUDIO);engineSampleAudio.loop=true;engineSampleAudio.preload='auto';engineSampleAudio.volume=1;
-  engineSampleSource=audioCtx.createMediaElementSource(engineSampleAudio);engineSampleFilter=audioCtx.createBiquadFilter();engineSampleFilter.type='lowpass';engineSampleFilter.frequency.value=5200;
-  engineSampleGain=audioCtx.createGain();engineSampleGain.gain.value=0;engineSampleSource.connect(engineSampleFilter);engineSampleFilter.connect(engineSampleGain);engineSampleGain.connect(audioCtx.destination);
+  engineSampleAudio=new Audio(window.STREET_LEGENDS_ENGINE_AUDIO);engineSampleAudio.loop=true;engineSampleAudio.preload='auto';engineSampleAudio.volume=0;
   engineSampleAudio.play().catch(()=>{});
  }
  engineOsc=audioCtx.createOscillator();engineOsc.type='triangle';
@@ -630,8 +628,7 @@ function updateAudio(){
   const sampleRate=THREE.MathUtils.clamp(.9+speed/90+throttle*.14+(boost?.12:0),.9,1.65);
   engineSampleAudio.playbackRate=sampleRate;
   if(engineSampleAudio.paused&&active)engineSampleAudio.play().catch(()=>{});
-  engineSampleGain.gain.setTargetAtTime(active?.82:0,now,.16);
-  engineSampleFilter.frequency.setTargetAtTime(3000+throttle*2200+speed*18,now,.18);
+  engineSampleAudio.volume=active?.85:0;
  }
  if(active&&throttle&&gear>lastAudioGear)playSfx('shift');
  lastAudioGear=gear;
