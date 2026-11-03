@@ -55,7 +55,7 @@ button{border:0;border-radius:10px;padding:14px 22px;background:linear-gradient(
  <div id="speedbox" class="panel"><div id="speed">000</div><div id="unit">KM/H</div><div id="gear">GEAR 1</div></div><button id="lightToggle" type="button">LIGHTS: ON</button><div id="toast"></div><div id="raceResult"><div class="resultCard"><span id="raceResultPlace">1ST PLACE!</span><small>RACE FINISHED</small></div></div>
 </div>
 <div id="racePanel"><div class="raceCard"><div class="small">STREET LEGENDS • RACING DISTRICT</div><h2>🏁 Circuit Race</h2><p>Race 3 laps. The host chooses the grid size; AI drivers fill empty spots.</p><div id="raceSetup"><label for="raceSlots">Racers in this race</label><select id="raceSlots"><option value="2">2 racers</option><option value="3">3 racers</option><option value="4">4 racers</option><option value="5">5 racers</option><option value="6" selected>6 racers</option><option value="7">7 racers</option><option value="8">8 racers</option></select><button id="createRaceBtn">HOST A RACE</button><button id="joinRaceBtn" class="secondary">JOIN RACE</button></div><div id="raceStatus">Create a race or join another player.</div><div id="raceTimer">00:00.000</div><div id="raceRoster"></div><button id="startRaceBtn" style="display:none">START RACE</button><button id="leaveRaceBtn" class="secondary" style="display:none">LEAVE / CLOSE</button><button id="closeRaceBtn" class="secondary">CLOSE</button></div></div>
-<div id="overlay"><div id="menu"><div class="small">3D OPEN WORLD • PC DRIVING</div><h1>STREET<br><span>LEGENDS</span></h1><p>Take the wheel of your sports car. Explore a full 3D city, dodge traffic, hit the nitro and collect cash.</p><div><span class="tag">3D CITY</span><span class="tag">TRAFFIC</span><span class="tag">NITRO</span><span class="tag">GARAGE</span></div><button id="start">START DRIVING →</button><p style="font-size:11px;margin-bottom:0">Best on desktop • WASD or arrow keys</p><p style="font-size:9px;color:#8999a8;margin:7px 0 0">Engine audio: “Low Engine Idle Rumble” by BudgetPixel AI (CC BY 4.0)</p></div></div>
+<div id="overlay"><div id="menu"><div class="small">3D OPEN WORLD • PC DRIVING</div><h1>STREET<br><span>LEGENDS</span></h1><p>Take the wheel of your sports car. Explore a full 3D city, dodge traffic, hit the nitro and collect cash.</p><div><span class="tag">3D CITY</span><span class="tag">TRAFFIC</span><span class="tag">NITRO</span><span class="tag">GARAGE</span></div><button id="start">START DRIVING →</button><p style="font-size:11px;margin-bottom:0">Best on desktop • WASD or arrow keys</p><p style="font-size:9px;color:#8999a8;margin:7px 0 0">Engine sound: recorded car acceleration (CC0)</p></div></div>
 <div id="garage"><div class="card panel"><div class="small">YOUR GARAGE</div><h2 style="margin:7px 0">Customize your ride</h2><p style="color:#b9c4cf;font-size:13px">Choose a paint job for your car.</p><div class="swatches">
 <div class="swatch" data-color="#e52b35" style="background:#e52b35"></div><div class="swatch" data-color="#1678e8" style="background:#1678e8"></div><div class="swatch" data-color="#f0f0f0" style="background:#f0f0f0"></div><div class="swatch" data-color="#17191e" style="background:#17191e"></div><div class="swatch" data-color="#ffb52e" style="background:#ffb52e"></div><div class="swatch" data-color="#26c99a" style="background:#26c99a"></div></div><button id="closeGarage">BACK TO CITY</button></div></div>
 <script src="engine-audio.js"></script>
@@ -622,15 +622,15 @@ function updateAudio(){
  engineOsc2.frequency.setTargetAtTime(rpm*2.01,now,.085);
  engineFilter.frequency.setTargetAtTime(360+gearProgress*760+load*520+revving*420,now,.09);
  // Throaty, layered performance-car engine: low rumble at idle, louder revs under throttle.
- const engineVolume=active?(speed<1?.07:.12+throttle*.05):.0001;
+ const engineVolume=.0001;
  engineGain.gain.setTargetAtTime(engineVolume,now,.08);
  engineNoiseFilter.frequency.setTargetAtTime(360+rpm*9+throttle*1050,now,.1);
- engineNoiseGain.gain.setTargetAtTime(active?.02:.0001,now,.1);
+ engineNoiseGain.gain.setTargetAtTime(.0001,now,.1);
  if(engineSampleAudio&&engineSampleGain){
-  const sampleRate=THREE.MathUtils.clamp(.82+speed/82+throttle*.06+(boost?.08:0),.82,1.72);
+  const sampleRate=THREE.MathUtils.clamp(.9+speed/90+throttle*.14+(boost?.12:0),.9,1.65);
   engineSampleAudio.playbackRate=sampleRate;
   if(engineSampleAudio.paused&&active)engineSampleAudio.play().catch(()=>{});
-  engineSampleGain.gain.setTargetAtTime(active?.62:0,now,.16);
+  engineSampleGain.gain.setTargetAtTime(active?.82:0,now,.16);
   engineSampleFilter.frequency.setTargetAtTime(3000+throttle*2200+speed*18,now,.18);
  }
  if(active&&throttle&&gear>lastAudioGear)playSfx('shift');
@@ -640,7 +640,7 @@ function updateAudio(){
  highSpeedOsc.frequency.setTargetAtTime(105+rpm*1.65+throttle*35,now,.06);
  highSpeedOsc2.frequency.setTargetAtTime(165+rpm*2.25+throttle*48,now,.07);
  highSpeedFilter.frequency.setTargetAtTime(580+highSpeed*1450+throttle*440,now,.08);
- highSpeedGain.gain.setTargetAtTime(active?.012:.0001,now,.08);
+ highSpeedGain.gain.setTargetAtTime(.0001,now,.08);
  const drifting=active&&keys[' ']&&speed>17&&(keys.KeyA||keys.a||keys.arrowleft||keys.KeyD||keys.d||keys.arrowright);
  tireGain.gain.setTargetAtTime(drifting ? .12 : 0,now,.09);
  // Nitro is visual + acceleration only; no synthetic low-pitched boom.
