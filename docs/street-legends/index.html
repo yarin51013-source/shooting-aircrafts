@@ -477,7 +477,7 @@ function setRaceState(state){
   const gridIndex=(state.participants||[]).findIndex(p=>p.id===playerId&&!p.bot);
   if(gridIndex>=0){
    const row=Math.floor(gridIndex/2),lane=(gridIndex%2===0?-1:1)*7;
-   car.root.position.set(raceCenter.x-row*8,0,-raceCenter.rz+lane);
+   car.root.position.set(raceCenter.x-12-row*8,0,-raceCenter.rz+lane);
    heading=-Math.PI/2;car.root.rotation.set(0,heading,0);velocity=0;driftAngle=0;
    toast("RACE GRID — POSITION "+(gridIndex+1));
   }
