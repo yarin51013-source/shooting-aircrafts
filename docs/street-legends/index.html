@@ -722,12 +722,12 @@ function update(dt){
   
 
  car.root.position.x=THREE.MathUtils.clamp(car.root.position.x,-850,850);car.root.position.z=THREE.MathUtils.clamp(car.root.position.z,-850,850);
- for(const building of buildings){const b=building.mesh;const hitX=building.width/2+1.2,hitZ=building.depth/2+2.3;if(Math.abs(car.root.position.x-b.position.x)<hitX&&Math.abs(car.root.position.z-b.position.z)<hitZ){car.root.position.copy(old);velocity*=-.25;health=Math.max(0,health-7);burst(car.root.position.clone().add(new THREE.Vector3(0,1,0)),0xffa33b,18);playSfx('crash');toast('CRASH!');break;}}
+ for(const building of buildings){const b=building.mesh;const hitX=building.width/2+1.2,hitZ=building.depth/2+2.3;if(Math.abs(car.root.position.x-b.position.x)<hitX&&Math.abs(car.root.position.z-b.position.z)<hitZ){car.root.position.copy(old);velocity*=-.25;health=Math.max(0,health-7);burst(car.root.position.clone().add(new THREE.Vector3(0,1,0)),0xffa33b,18);toast('CRASH!');break;}}
   const wasInRace=insideRaceDistrict(old.x,old.z),isInRace=insideRaceDistrict(car.root.position.x,car.root.position.z);
   if(hitsRaceTrackBarrier(old.x,old.z,car.root.position.x,car.root.position.z)){
-   car.root.position.copy(old);velocity*=-.24;playSfx('crash');toast('TRACK BARRIER!');
+   car.root.position.copy(old);velocity*=-.24;toast('TRACK BARRIER!');
   }else if(!wasInRace&&isInRace&&!(old.x<552&&Math.abs(old.z)<14)){
-   car.root.position.copy(old);velocity*=-.22;playSfx('crash');toast('RACE FACILITY — USE THE GATE');
+   car.root.position.copy(old);velocity*=-.22;toast('RACE FACILITY — USE THE GATE');
   }
  rampCooldown=Math.max(0,rampCooldown-dt);
  for(const ramp of streetRamps){
