@@ -172,14 +172,31 @@ for(const [rx,rz] of rampLocations){
 }
 
 const raceCenter={x:700,z:0,rx:132,rz:96};
-const raceTrackMat=mat(0x252b31,.96),racePaintMat=new THREE.MeshBasicMaterial({color:0xf5f1df}),raceBarrierMat=mat(0x89939b,.65,.25);
-addBox(180,.12,17,roadMat,610,-.08,0,false);
-const raceGround=new THREE.Mesh(new THREE.PlaneGeometry(360,300),mat(0x526b4d,.98));raceGround.rotation.x=-Math.PI/2;raceGround.position.set(raceCenter.x,-.13,0);scene.add(raceGround);
-const raceVerts=[],raceIndices=[];for(let i=0;i<=128;i++){const a=i/128*Math.PI*2;for(const outer of [true,false]){const rx=raceCenter.rx+(outer?20:-20),rz=raceCenter.rz+(outer?20:-20);raceVerts.push(raceCenter.x+Math.cos(a)*rx,.025,Math.sin(a)*rz);}}
-for(let i=0;i<128;i++){const n=i*2;raceIndices.push(n,n+1,n+2,n+1,n+3,n+2);}const raceGeo=new THREE.BufferGeometry();raceGeo.setAttribute('position',new THREE.Float32BufferAttribute(raceVerts,3));raceGeo.setIndex(raceIndices);raceGeo.computeVertexNormals();const raceSurface=new THREE.Mesh(raceGeo,raceTrackMat);raceSurface.material.side=THREE.DoubleSide;scene.add(raceSurface);
-for(let i=0;i<96;i++){const a=i/96*Math.PI*2;for(const r of [-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(10,.9,.65),raceBarrierMat);rail.position.set(raceCenter.x+Math.cos(a)*(raceCenter.rx+r*23),.48,Math.sin(a)*(raceCenter.rz+r*23));rail.rotation.y=-a;scene.add(rail);}}
-const raceStartLine=new THREE.Mesh(new THREE.BoxGeometry(42,.06,2.2),racePaintMat);raceStartLine.position.set(raceCenter.x,.07,-raceCenter.rz);scene.add(raceStartLine);
-const raceArchMat=new THREE.MeshStandardMaterial({color:0xffb52e,emissive:0x754000,emissiveIntensity:.55});for(const x of [raceCenter.x-22,raceCenter.x+22]){const post=new THREE.Mesh(new THREE.BoxGeometry(1,8,1),raceArchMat);post.position.set(x,4,-raceCenter.rz-5);scene.add(post);}const raceArch=new THREE.Mesh(new THREE.BoxGeometry(46,.8,1),raceArchMat);raceArch.position.set(raceCenter.x,8,-raceCenter.rz-5);scene.add(raceArch);
+const raceTrackMat=mat(0x252b31,.96),raceBarrierMat=mat(0x89939b,.65,.25);
+const raceGround=new THREE.Mesh(new THREE.PlaneGeometry(390,330),mat(0x496344,.98));raceGround.rotation.x=-Math.PI/2;raceGround.position.set(raceCenter.x,-.14,0);scene.add(raceGround);
+const raceApron=new THREE.Mesh(new THREE.RingGeometry(.78,1,160),mat(0x8b9290,.96));raceApron.rotation.x=-Math.PI/2;raceApron.scale.set(178,142,1);raceApron.position.set(raceCenter.x,-.055,0);scene.add(raceApron);
+const raceVerts=[],raceIndices=[];for(let i=0;i<=192;i++){const a=i/192*Math.PI*2;for(const outer of [true,false]){const rx=raceCenter.rx+(outer?20:-20),rz=raceCenter.rz+(outer?20:-20);raceVerts.push(raceCenter.x+Math.cos(a)*rx,.035,Math.sin(a)*rz);}}
+for(let i=0;i<192;i++){const n=i*2;raceIndices.push(n,n+1,n+2,n+1,n+3,n+2);}
+const raceGeo=new THREE.BufferGeometry();raceGeo.setAttribute('position',new THREE.Float32BufferAttribute(raceVerts,3));raceGeo.setIndex(raceIndices);raceGeo.computeVertexNormals();const raceSurface=new THREE.Mesh(raceGeo,raceTrackMat);raceSurface.material.side=THREE.DoubleSide;scene.add(raceSurface);
+function raceEllipseLine(rx,rz,color,tube=.18,y=.085){const line=new THREE.Mesh(new THREE.TorusGeometry(1,tube,6,192),new THREE.MeshBasicMaterial({color}));line.rotation.x=Math.PI/2;line.scale.set(rx,rz,1);line.position.set(raceCenter.x,y,0);scene.add(line);}
+raceEllipseLine(132,96,0xe8e8df);raceEllipseLine(112,76,0xe8e8df,.16);raceEllipseLine(152,116,0xf4f1e8,.16);
+for(let i=0;i<192;i++){const a=i/192*Math.PI*2;for(const side of [-1,1]){const rx=raceCenter.rx+side*17,rz=raceCenter.rz+side*17;const curb=new THREE.Mesh(new THREE.BoxGeometry(5.4,.28,2.1),new THREE.MeshStandardMaterial({color:i%2?0xe9e9e3:0xd52e32,roughness:.8}));curb.position.set(raceCenter.x+Math.cos(a)*rx,.18,Math.sin(a)*rz);curb.rotation.y=-a;scene.add(curb);}}
+const fenceMat=mat(0x53616b,.55,.62),fenceBaseMat=mat(0x303a42,.82,.22),innerBarrierMat=mat(0xc8cdd0,.72,.18);
+for(let i=0;i<192;i++){const a=i/192*Math.PI*2,westGap=Math.abs(Math.atan2(Math.sin(a-Math.PI),Math.cos(a-Math.PI)))<.105;
+ if(!westGap){const wall=new THREE.Mesh(new THREE.BoxGeometry(7.1,4.8,.42),fenceMat);wall.position.set(raceCenter.x+Math.cos(a)*166,2.45,Math.sin(a)*130);wall.rotation.y=-a;wall.castShadow=true;scene.add(wall);
+  const base=new THREE.Mesh(new THREE.BoxGeometry(7.2,.8,.62),fenceBaseMat);base.position.set(raceCenter.x+Math.cos(a)*166,.42,Math.sin(a)*130);base.rotation.y=-a;scene.add(base);
+  if(i%3===0){const post=new THREE.Mesh(new THREE.BoxGeometry(.38,5.5,.65),fenceBaseMat);post.position.set(raceCenter.x+Math.cos(a)*166,2.75,Math.sin(a)*130);post.rotation.y=-a;scene.add(post);}
+ }
+ const inner=new THREE.Mesh(new THREE.BoxGeometry(7.1,1.5,.85),innerBarrierMat);inner.position.set(raceCenter.x+Math.cos(a)*105,.78,Math.sin(a)*69);inner.rotation.y=-a;scene.add(inner);
+}
+const raceAccent=new THREE.MeshStandardMaterial({color:0xffb52e,emissive:0x754000,emissiveIntensity:.7});
+for(const x of [raceCenter.x-12,raceCenter.x+12]){const pillar=new THREE.Mesh(new THREE.BoxGeometry(1.1,6,1.1),raceAccent);pillar.position.set(x,3,0);scene.add(pillar);const lamp=new THREE.PointLight(0xffd38a,2.2,30);lamp.position.set(x,5.7,0);scene.add(lamp);}
+const gateBeam=new THREE.Mesh(new THREE.BoxGeometry(25,.85,1.2),raceAccent);gateBeam.position.set(raceCenter.x,6.1,0);scene.add(gateBeam);
+const raceStartLine=new THREE.Group();for(let i=0;i<14;i++){const tile=new THREE.Mesh(new THREE.BoxGeometry(2.2,.08,2.1),new THREE.MeshBasicMaterial({color:i%2?0x161a1e:0xffffff}));tile.position.set(raceCenter.x-15.4+i*2.2,.11,-raceCenter.rz);raceStartLine.add(tile);}scene.add(raceStartLine);
+const grandstandMat=mat(0x273744,.7,.3);for(let row=0;row<5;row++){const stand=new THREE.Mesh(new THREE.BoxGeometry(58,1.1,4),grandstandMat);stand.position.set(raceCenter.x,1.1+row*.8,-raceCenter.rz-35-row*3.2);scene.add(stand);}
+for(let i=0;i<8;i++){const pole=new THREE.Mesh(new THREE.CylinderGeometry(.18,.24,13,8),fenceBaseMat);pole.position.set(raceCenter.x-145+i*41,6.5,145);scene.add(pole);const head=new THREE.Mesh(new THREE.BoxGeometry(4,.5,1.3),raceAccent);head.position.set(pole.position.x,13.1,145);scene.add(head);}
+function insideRaceDistrict(x,z){const dx=(x-raceCenter.x)/188,dz=z/150;return dx*dx+dz*dz<1;}
+
 
 const buildings=[];
 const winMat=new THREE.MeshStandardMaterial({color:0xb9d6df,emissive:0x344d5b,emissiveIntensity:.32,roughness:.28,metalness:.12});
@@ -635,6 +652,8 @@ function update(dt){
  car.root.position.x-=Math.sin(travelHeading)*velocity*dt;car.root.position.z-=Math.cos(travelHeading)*velocity*dt;
  car.root.position.x=THREE.MathUtils.clamp(car.root.position.x,-850,850);car.root.position.z=THREE.MathUtils.clamp(car.root.position.z,-850,850);
  for(const building of buildings){const b=building.mesh;const hitX=building.width/2+1.2,hitZ=building.depth/2+2.3;if(Math.abs(car.root.position.x-b.position.x)<hitX&&Math.abs(car.root.position.z-b.position.z)<hitZ){car.root.position.copy(old);velocity*=-.25;health=Math.max(0,health-7);burst(car.root.position.clone().add(new THREE.Vector3(0,1,0)),0xffa33b,18);playSfx('crash');toast('CRASH!');break;}}
+  const wasInRace=insideRaceDistrict(old.x,old.z),isInRace=insideRaceDistrict(car.root.position.x,car.root.position.z);
+  if(!wasInRace&&isInRace&&!(old.x<552&&Math.abs(old.z)<14)){car.root.position.copy(old);velocity*=-.22;playSfx('crash');toast('RACE FACILITY — USE THE GATE');}
  rampCooldown=Math.max(0,rampCooldown-dt);
  for(const ramp of streetRamps){
   if(rampCooldown<=0&&Math.abs(car.root.position.x-ramp.x)<4.2&&Math.abs(car.root.position.z-ramp.z)<6.2&&velocity>13&&car.root.position.y<.8){
@@ -657,17 +676,21 @@ function update(dt){
  }
  for(const p of pickups){p.rotation.y+=dt*1.6;if(p.visible&&p.position.distanceTo(car.root.position)<4){p.visible=false;money+=100;document.querySelector('#money').textContent=money.toLocaleString();playSfx('cash');toast('+$100 CASH');}}
  for(const t of traffic){
-  t.coord+=t.direction*t.speed*dt;
-  if(t.coord>780)t.coord=-780;if(t.coord< -780)t.coord=780;
-  if(t.axis)t.car.root.position.x=t.coord;else t.car.root.position.z=t.coord;
+   const previous=t.coord;t.coord+=t.direction*t.speed*dt;
+   if(t.coord>780)t.coord=-780;if(t.coord< -780)t.coord=780;
+   const tx=t.axis?t.coord:t.car.root.position.x,tz=t.axis?t.car.root.position.z:t.coord;
+   if(insideRaceDistrict(tx,tz)){t.coord=previous;t.direction*=-1;}
+   if(t.axis)t.car.root.position.x=t.coord;else t.car.root.position.z=t.coord;
   t.car.wheels.forEach(w=>{w.rotation.x+=t.direction*t.speed*dt*1.8;});
   if(t.car.root.position.distanceTo(car.root.position)<3.1){velocity*=.55;health=Math.max(0,health-2);}
  }
  // Walkers pace along sidewalk lanes and turn around at the city edge; they never cross onto asphalt.
  for(const p of pedestrians){
-  p.coord+=p.direction*p.speed*dt;
-  if(p.coord>760){p.coord=760;p.direction=-1;}else if(p.coord< -760){p.coord=-760;p.direction=1;}
-  if(p.axis===0)p.root.position.x=p.coord;else p.root.position.z=p.coord;
+   const previous=p.coord;p.coord+=p.direction*p.speed*dt;
+   if(p.coord>760){p.coord=760;p.direction=-1;}else if(p.coord< -760){p.coord=-760;p.direction=1;}
+   const px=p.axis===0?p.coord:p.root.position.x,pz=p.axis===0?p.root.position.z:p.coord;
+   if(insideRaceDistrict(px,pz)){p.coord=previous;p.direction*=-1;}
+   if(p.axis===0)p.root.position.x=p.coord;else p.root.position.z=p.coord;
   p.root.rotation.y=p.axis===0?(p.direction>0?Math.PI/2:-Math.PI/2):(p.direction>0?0:Math.PI);
   const stride=Math.sin(performance.now()*.007*p.speed+p.phase);
   p.leftLeg.rotation.x=stride*.48;p.rightLeg.rotation.x=-stride*.48;
