@@ -768,7 +768,7 @@ function update(dt){
  else driftAngle=THREE.MathUtils.damp(driftAngle,0,handbrake?1.15:4.8,dt);
  if(handbrake)velocity*=Math.pow(driftReady?.994:.975,dt*60);
  car.brakeLamps.forEach(m=>m.emissiveIntensity=(keys[' ']||back)?2.4:(lightsOn?1.15:.22));
- car.underglow.material.opacity=boost&&Math.abs(velocity)>8?.22:0;
+ car.underglow.material.opacity=(garageOwnedCosmetics.includes('neon')?.18:0)+(boost&&Math.abs(velocity)>8?.22:0);
  const flameTime=performance.now()*.018;
  for(const f of car.nitroFlames){
   const active=running&&!paused&&nitroPrimed&&boost&&Math.abs(velocity)>5;
