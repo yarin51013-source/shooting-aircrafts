@@ -340,10 +340,13 @@ function makeNameTag(label){
  sprite.setLabel=draw;draw(label);return sprite;
 }
 function setPlayerName(value){
- playerName=String(value||'Player').replace(/[<>]/g,'').trim().slice(0,18)||'Player';
- document.querySelector('#playerName').value=playerName;
+ if(localStorage.getItem('streetLegendsName'))return;
+ const chosen=String(value||'').replace(/[<>]/g,'').trim().slice(0,18);
+ if(!chosen){document.querySelector('#nameStatus').textContent='Enter a name';return;}
+ playerName=chosen;
  localStorage.setItem('streetLegendsName',playerName);
  localNameTag.setLabel(playerName);
+ document.querySelector('#namePanel').style.display='none';
  if(networkSocket&&networkSocket.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'name',name:playerName}));
 }
 function connectMultiplayer(){
