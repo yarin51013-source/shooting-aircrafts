@@ -190,8 +190,8 @@ for(let i=0;i<192;i++){const a=i/192*Math.PI*2,westGap=Math.abs(Math.atan2(Math.
  const inner=new THREE.Mesh(new THREE.BoxGeometry(7.1,1.5,.85),innerBarrierMat);inner.position.set(raceCenter.x+Math.cos(a)*105,.78,Math.sin(a)*69);inner.rotation.y=-a;scene.add(inner);
 }
 const raceAccent=new THREE.MeshStandardMaterial({color:0xffb52e,emissive:0x754000,emissiveIntensity:.7});
-for(const x of [raceCenter.x-12,raceCenter.x+12]){const pillar=new THREE.Mesh(new THREE.BoxGeometry(1.1,6,1.1),raceAccent);pillar.position.set(x,3,0);scene.add(pillar);const lamp=new THREE.PointLight(0xffd38a,2.2,30);lamp.position.set(x,5.7,0);scene.add(lamp);}
-const gateBeam=new THREE.Mesh(new THREE.BoxGeometry(25,.85,1.2),raceAccent);gateBeam.position.set(raceCenter.x,6.1,0);scene.add(gateBeam);
+for(const z of [-12,12]){const pillar=new THREE.Mesh(new THREE.BoxGeometry(1.1,6,1.1),raceAccent);pillar.position.set(raceCenter.x-166,3,z);scene.add(pillar);const lamp=new THREE.PointLight(0xffd38a,2.2,30);lamp.position.set(raceCenter.x-166,5.7,z);scene.add(lamp);}
+const gateBeam=new THREE.Mesh(new THREE.BoxGeometry(1.2,.85,25),raceAccent);gateBeam.position.set(raceCenter.x-166,6.1,0);scene.add(gateBeam);
 const raceStartLine=new THREE.Group();for(let i=0;i<14;i++){const tile=new THREE.Mesh(new THREE.BoxGeometry(2.2,.08,2.1),new THREE.MeshBasicMaterial({color:i%2?0x161a1e:0xffffff}));tile.position.set(raceCenter.x-15.4+i*2.2,.11,-raceCenter.rz);raceStartLine.add(tile);}scene.add(raceStartLine);
 const grandstandMat=mat(0x273744,.7,.3);for(let row=0;row<5;row++){const stand=new THREE.Mesh(new THREE.BoxGeometry(58,1.1,4),grandstandMat);stand.position.set(raceCenter.x,1.1+row*.8,-raceCenter.rz-35-row*3.2);scene.add(stand);}
 for(let i=0;i<8;i++){const pole=new THREE.Mesh(new THREE.CylinderGeometry(.18,.24,13,8),fenceBaseMat);pole.position.set(raceCenter.x-145+i*41,6.5,145);scene.add(pole);const head=new THREE.Mesh(new THREE.BoxGeometry(4,.5,1.3),raceAccent);head.position.set(pole.position.x,13.1,145);scene.add(head);}
