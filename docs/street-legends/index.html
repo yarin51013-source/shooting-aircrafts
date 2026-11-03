@@ -543,11 +543,11 @@ function initAudio(){
  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
  audioCtx=new AC();
  // Layered four-cylinder sports-car engine: low firing pulses, exhaust harmonics and a restrained intake layer.
- engineOsc=audioCtx.createOscillator();engineOsc.type='sawtooth';
- engineOsc2=audioCtx.createOscillator();engineOsc2.type='triangle';
- engineFilter=audioCtx.createBiquadFilter();engineFilter.type='lowpass';engineFilter.frequency.value=520;engineFilter.Q.value=.7;
+ engineOsc=audioCtx.createOscillator();engineOsc.type='triangle';
+ engineOsc2=audioCtx.createOscillator();engineOsc2.type='sine';
+ engineFilter=audioCtx.createBiquadFilter();engineFilter.type='lowpass';engineFilter.frequency.value=420;engineFilter.Q.value=.45;
  engineGain=audioCtx.createGain();engineGain.gain.value=0;
- const engineMix=audioCtx.createGain();engineMix.gain.value=.24;
+ const engineMix=audioCtx.createGain();engineMix.gain.value=.34;
  engineOsc.connect(engineFilter);engineOsc2.connect(engineFilter);engineFilter.connect(engineMix);engineMix.connect(engineGain);engineGain.connect(audioCtx.destination);
  engineOsc.start();engineOsc2.start();
  const noiseBuffer=audioCtx.createBuffer(1,audioCtx.sampleRate*2,audioCtx.sampleRate),noiseData=noiseBuffer.getChannelData(0);
@@ -556,11 +556,11 @@ function initAudio(){
  engineNoiseFilter=audioCtx.createBiquadFilter();engineNoiseFilter.type='bandpass';engineNoiseFilter.frequency.value=850;engineNoiseFilter.Q.value=.55;
  engineNoiseGain=audioCtx.createGain();engineNoiseGain.gain.value=0;
  engineNoise.connect(engineNoiseFilter);engineNoiseFilter.connect(engineNoiseGain);engineNoiseGain.connect(audioCtx.destination);engineNoise.start();
- highSpeedOsc=audioCtx.createOscillator();highSpeedOsc.type='sawtooth';
- highSpeedOsc2=audioCtx.createOscillator();highSpeedOsc2.type='triangle';
+ highSpeedOsc=audioCtx.createOscillator();highSpeedOsc.type='triangle';
+ highSpeedOsc2=audioCtx.createOscillator();highSpeedOsc2.type='sine';
  highSpeedFilter=audioCtx.createBiquadFilter();highSpeedFilter.type='lowpass';highSpeedFilter.frequency.value=950;
  highSpeedGain=audioCtx.createGain();highSpeedGain.gain.value=0;
- const highSpeedMix=audioCtx.createGain();highSpeedMix.gain.value=.08;
+ const highSpeedMix=audioCtx.createGain();highSpeedMix.gain.value=.045;
  highSpeedOsc.connect(highSpeedFilter);highSpeedOsc2.connect(highSpeedFilter);highSpeedFilter.connect(highSpeedMix);highSpeedMix.connect(highSpeedGain);highSpeedGain.connect(audioCtx.destination);
  highSpeedOsc.start();highSpeedOsc2.start();
  const tireBuffer=audioCtx.createBuffer(1,audioCtx.sampleRate*2,audioCtx.sampleRate),tireData=tireBuffer.getChannelData(0);
