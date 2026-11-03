@@ -84,7 +84,7 @@ wss.on('connection',ws=>{
   if(msg.type==='race-create'){
    if(raceState&&raceState.status!=='complete')return;
    const maxPlayers=Math.max(2,Math.min(8,Math.floor(Number(msg.maxPlayers)||6)));
-   raceState={status:'lobby',hostId:id,maxPlayers,laps:3,startedAt:null,participants:[{id,name:player.name,bot:false,lap:0,finished:false,time:null}]};while(raceState.participants.length<maxPlayers){const n=raceState.participants.filter(p=>p.bot).length+1;raceState.participants.push({id:'bot-'+n,name:'AI Racer '+n,bot:true,lap:0,finished:false,time:null});}broadcastRace();return;
+   raceState={id:crypto.randomUUID(),status:'lobby',hostId:id,maxPlayers,laps:3,startedAt:null,participants:[{id,name:player.name,bot:false,lap:0,finished:false,time:null}]};while(raceState.participants.length<maxPlayers){const n=raceState.participants.filter(p=>p.bot).length+1;raceState.participants.push({id:'bot-'+n,name:'AI Racer '+n,bot:true,lap:0,finished:false,time:null});}broadcastRace();return;
   }
   if(msg.type==='race-join'){
    if(!raceState||raceState.status!=='lobby'||raceState.participants.some(p=>p.id===id))return;
