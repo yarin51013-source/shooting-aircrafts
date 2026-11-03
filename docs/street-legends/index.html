@@ -625,8 +625,8 @@ function updateAudio(){
  highSpeedFilter.frequency.setTargetAtTime(650+highSpeed*800+throttle*350,now,.09);
  highSpeedGain.gain.setTargetAtTime(active?highSpeed*.012:.0001,now,.12);
  const drifting=active&&keys[' ']&&speed>17&&(keys.KeyA||keys.a||keys.arrowleft||keys.KeyD||keys.d||keys.arrowright);
- // Remove only the noisy tire hiss that can sound like a fart; retain all other SFX.
- tireGain.gain.setTargetAtTime(0,now,.09);
+ // Restore the original tire sound while drifting; keep it silent when not drifting.
+ tireGain.gain.setTargetAtTime(drifting?.12:0,now,.09);
  // Nitro adds engine load only; no booming effect.
  nitroWasOn=!!(active&&nitroPrimed&&boost&&speed>5);
 }
