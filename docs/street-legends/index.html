@@ -947,7 +947,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  }
  if(networkSocket&&networkSocket.readyState===WebSocket.OPEN&&performance.now()-lastNetSend>90){
   lastNetSend=performance.now();
-  networkSocket.send(JSON.stringify({type:'state',x:car.root.position.x,z:car.root.position.z,heading:car.root.rotation.y,model:activeDealerCar||'starter',mods:equippedMods||[],color:0xe52b35}));
+  networkSocket.send(JSON.stringify({type:'state',x:car.root.position.x,z:car.root.position.z,heading:car.root.rotation.y,model:activeDealerCar||'starter',mods:equippedMods||[],color:car.bodyMat.color.getHex()}));
  }
  let offset=camMode===0?new THREE.Vector3(0,6,12):camMode===1?new THREE.Vector3(0,3.1,6.8):new THREE.Vector3(0,22,4);
  const desired=offset.applyAxisAngle(new THREE.Vector3(0,1,0),heading),target=car.root.position.clone().add(desired);camera.position.lerp(target,.09);
