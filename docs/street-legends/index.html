@@ -419,8 +419,13 @@ function makeCar(color=0xe52b35,shadowLights=true){
   core.rotation.x=Math.PI/2;core.position.set(x,.72,2.64);core.visible=false;root.add(core);
   nitroFlames.push({flame,middle,core,seed:Math.random()*Math.PI*2});
  }
+ const spoiler=new THREE.Group();
+ const spoilerMat=new THREE.MeshStandardMaterial({color:0x171b20,roughness:.42,metalness:.72});
+ const spoilerBlade=new THREE.Mesh(new THREE.BoxGeometry(2.15,.09,.34),spoilerMat);spoilerBlade.position.set(0,1.68,1.94);spoiler.add(spoilerBlade);
+ for(const x of [-.68,.68]){const support=new THREE.Mesh(new THREE.BoxGeometry(.09,.34,.12),spoilerMat);support.position.set(x,1.49,1.88);spoiler.add(support);}
+ spoiler.visible=false;root.add(spoiler);
  const underglow=new THREE.Mesh(new THREE.PlaneGeometry(1.8,3.5),new THREE.MeshBasicMaterial({color:0x27aaff,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}));underglow.rotation.x=-Math.PI/2;underglow.position.y=.07;root.add(underglow);
- return {root,bodyMat,body,hood,cabin,roof,wheels:wheelMeshes,rimMat:rim,brakeLamps,headlights,headlightSpots,taillightSpots,nitroFlames,underglow};
+ return {root,bodyMat,body,hood,cabin,roof,wheels:wheelMeshes,rimMat:rim,spoiler,brakeLamps,headlights,headlightSpots,taillightSpots,nitroFlames,underglow};
 }
 const car=makeCar();car.root.position.set(0,0,12);
 const localNameTag=makeNameTag(localStorage.getItem('streetLegendsName')||'Player');
