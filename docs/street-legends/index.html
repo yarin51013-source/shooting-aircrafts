@@ -622,10 +622,10 @@ function updateAudio(){
  engineOsc2.frequency.setTargetAtTime(rpm*2.01,now,.085);
  engineFilter.frequency.setTargetAtTime(360+gearProgress*760+load*520+revving*420,now,.09);
  // Throaty, layered performance-car engine: low rumble at idle, louder revs under throttle.
- const engineVolume=.0001; // The recorded engine sample is the only engine tone.
+ const engineVolume=active?(speed<1?.07:.12+throttle*.05):.0001;
  engineGain.gain.setTargetAtTime(engineVolume,now,.08);
  engineNoiseFilter.frequency.setTargetAtTime(360+rpm*9+throttle*1050,now,.1);
- engineNoiseGain.gain.setTargetAtTime(.0001,now,.1);
+ engineNoiseGain.gain.setTargetAtTime(active?.02:.0001,now,.1);
  if(engineSampleAudio&&engineSampleGain){
   const sampleRate=THREE.MathUtils.clamp(.82+speed/82+throttle*.06+(boost?.08:0),.82,1.72);
   engineSampleAudio.playbackRate=sampleRate;
