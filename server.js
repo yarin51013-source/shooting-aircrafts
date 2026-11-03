@@ -92,7 +92,7 @@ wss.on('connection',ws=>{
    const botIndex=raceState.participants.findIndex(p=>p.bot);const human={id,name:player.name,bot:false,lap:0,finished:false,time:null};if(botIndex>=0)raceState.participants[botIndex]=human;else raceState.participants.push(human);broadcastRace();return;
   }
   if(msg.type==='race-start'&&raceState&&raceState.hostId===id&&raceState.status==='lobby'){
-   raceState.status='countdown';raceState.startedAt=Date.now()+5000;broadcastRace();setTimeout(()=>{if(raceState&&raceState.status==='countdown'){raceState.status='running';raceState.startedAt=Date.now();broadcastRace();}},5000);return;
+   raceState.status='countdown';raceState.startedAt=Date.now()+3000;broadcastRace();setTimeout(()=>{if(raceState&&raceState.status==='countdown'){raceState.status='running';raceState.startedAt=Date.now();broadcastRace();}},3000);return;
   }
   if(msg.type==='race-progress'&&raceState&&raceState.status==='running'){const p=raceState.participants.find(p=>p.id===id);if(p&&!p.bot)p.lap=Math.max(p.lap,Math.min(3,Number(msg.lap)||0));broadcastRace();return;}
   if(msg.type==='race-finish'&&raceState&&raceState.status==='running'){const p=raceState.participants.find(p=>p.id===id);if(p&&!p.bot){p.finished=true;p.time=Math.max(0,Number(msg.time)||0);}if(raceState.participants.filter(p=>!p.bot).every(p=>p.finished)){raceState.status='complete';}broadcastRace();return;}
