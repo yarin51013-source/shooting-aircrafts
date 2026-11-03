@@ -613,7 +613,8 @@ function updateAudio(){
  engineOsc.frequency.setTargetAtTime(firingHz,now,.065);
  engineOsc2.frequency.setTargetAtTime(firingHz*2.02,now,.075);
  engineFilter.frequency.setTargetAtTime(420+gearProgress*260+load*360+revving*380,now,.09);
- engineGain.gain.setTargetAtTime(active?.145+throttle*.075+(boost?.018:0):.0001,now,.1);
+ // Continuous synthesized engine tone muted to eliminate the unwanted fart-like sound; shift and tire SFX remain active.
+  engineGain.gain.setTargetAtTime(.0001,now,.1);
  engineNoiseFilter.frequency.setTargetAtTime(620+gearProgress*220+throttle*1050,now,.1);
  // Removed the buzzy/farty intake-noise layer; keep engine revs, gear shifts, tire sounds and other effects.
  engineNoiseGain.gain.setTargetAtTime(.0001,now,.12);
@@ -623,7 +624,7 @@ function updateAudio(){
  highSpeedOsc.frequency.setTargetAtTime(firingHz*1.5+35,now,.07);
  highSpeedOsc2.frequency.setTargetAtTime(firingHz*2.8+50,now,.08);
  highSpeedFilter.frequency.setTargetAtTime(650+highSpeed*800+throttle*350,now,.09);
- highSpeedGain.gain.setTargetAtTime(active?highSpeed*.012:.0001,now,.12);
+ highSpeedGain.gain.setTargetAtTime(.0001,now,.12);
  const drifting=active&&keys[' ']&&speed>17&&(keys.KeyA||keys.a||keys.arrowleft||keys.KeyD||keys.d||keys.arrowright);
  tireGain.gain.setTargetAtTime(drifting ? .12 : 0,now,.09);
  // Nitro adds engine load only; no booming effect.
