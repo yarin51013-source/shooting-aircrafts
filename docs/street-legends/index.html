@@ -22,6 +22,7 @@
 #racePanel button{margin:7px 6px 0 0;padding:11px 14px;font-size:12px}#racePanel .secondary{background:#293b4c;color:#fff}
 #raceStatus{font-size:12px;color:#ffd078;min-height:20px;margin-top:12px}#raceTimer{font-size:32px;font-weight:900;margin:8px 0;color:#8dffcb}#raceRoster{font-size:12px;color:#d5e1eb;line-height:1.8}
 #raceHud{display:none;position:absolute;top:70px;right:20px;padding:10px 14px;min-width:150px;text-align:center;font-size:12px;font-weight:900;color:#8dffcb}
+#raceCountdown{display:none;position:absolute;inset:0;z-index:18;align-items:center;justify-content:center;pointer-events:none;font-size:clamp(76px,18vw,190px);font-weight:1000;font-style:italic;letter-spacing:-7px;color:#fff;text-shadow:0 8px 35px #000,0 0 35px #ffb52e;}
 
 #toast{position:absolute;top:23%;left:50%;transform:translate(-50%,-50%);font-size:20px;font-weight:900;letter-spacing:2px;text-shadow:0 3px 15px #000;opacity:0;transition:opacity .2s}
 #overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(120deg,#040a12e8,#040a1288);pointer-events:auto}
@@ -47,7 +48,7 @@ button{border:0;border-radius:10px;padding:14px 22px;background:linear-gradient(
 <canvas id="game"></canvas>
 <div id="hud">
  <div id="brand" class="panel">STREET <span>LEGENDS</span></div><div id="namePanel" class="panel"><input id="playerName" maxlength="18" placeholder="Your name" aria-label="Player name"><button id="saveName" type="button">SET NAME</button><span id="nameStatus">Offline</span></div><div id="onlineCount" class="panel">PLAYERS: 1</div><div id="cash">$ <span id="money">0</span></div><button id="soundToggle" type="button">SOUND: ON</button><button id="resetButton" type="button">RESET CAR</button><button id="garageButton" type="button">GARAGE</button>
- <canvas id="minimap" width="132" height="132"></canvas><button id="raceButton" type="button">🏁 RACING</button><div id="raceHud" class="panel">RACE <span id="raceHudTimer">00:00.000</span><br><span id="raceHudLap">LAP 1 / 3</span></div>
+ <canvas id="minimap" width="132" height="132"></canvas><button id="raceButton" type="button">🏁 RACING</button><div id="raceHud" class="panel">RACE <span id="raceHudTimer">00:00.000</span><br><span id="raceHudLap">LAP 1 / 3</span></div><div id="raceCountdown">3</div>
  <div id="mission" class="panel"><div class="small">FREE ROAM</div><strong>Explore the city</strong><p>Find glowing cash rings, cruise the streets and make the city yours.</p></div>
  <div id="help" class="panel"><b>WASD / ARROWS</b> Drive & steer<br><b>SHIFT</b> Nitro &nbsp; <b>SPACE</b> Handbrake<br><b>C</b> Camera &nbsp; <b>R</b> Reset car<br><b>G</b> Garage &nbsp; <b>ESC</b> Pause</div>
  <div id="speedbox" class="panel"><div id="speed">000</div><div id="unit">KM/H</div><div id="gear">GEAR 1</div></div><button id="lightToggle" type="button">LIGHTS: ON</button><div id="toast"></div>
@@ -646,6 +647,7 @@ let rampVerticalVelocity=0,rampCooldown=0,rampFlipActive=false,rampFlipUsedThisJ
 const rampFlipDuration=.78;
 function update(dt){
  if(!running||paused){hideNitroFlames();updateAudio();return;}
+ if(raceState&&raceState.status==='countdown'){velocity=0;driftAngle=0;hideNitroFlames();car.brakeLamps.forEach(m=>m.emissiveIntensity=2.4);updateAudio();return;}
  const forward=keys.KeyW||keys.w||keys.arrowup,back=keys.KeyS||keys.s||keys.arrowdown,left=keys.KeyA||keys.a||keys.arrowleft,right=keys.KeyD||keys.d||keys.arrowright,boost=keys.ShiftLeft||keys.ShiftRight||keys.shift;
  let accel=boost?37:23,max=boost?68:48;if(forward)velocity+=accel*dt;else if(back)velocity-=32*dt;else velocity*=Math.pow(.982,dt*60);
  velocity=THREE.MathUtils.clamp(velocity,-18,max);const speedFactor=Math.min(Math.abs(velocity)/18,1);
@@ -743,7 +745,8 @@ function drawMap(){ctx.clearRect(0,0,132,132);ctx.fillStyle='#172a32';ctx.fillRe
  ctx.save();ctx.translate(66,66);ctx.rotate(-heading);ctx.fillStyle='#ff4848';ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(6,7);ctx.lineTo(0,4);ctx.lineTo(-6,7);ctx.closePath();ctx.fill();ctx.restore();}
 const clock=new THREE.Clock();
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);updateDayNight(dt);update(dt);
- if(raceState&&raceBots.length){const bots=(raceState.participants||[]).filter(p=>p.bot);for(let i=0;i<raceBots.length;i++){const b=raceBots[i],p=bots[i];if(!p)continue;const angle=(raceState.status==='countdown'?Math.PI/2:((performance.now()-(raceState.startedAt||performance.now()))/1000)*(0.16+i*.012)+i*.48);const rx= i%2?raceCenter.rx-9:raceCenter.rx+9,rz=i%2?raceCenter.rz-9:raceCenter.rz+9;b.root.position.set(raceCenter.x+Math.cos(angle)*rx,.02,Math.sin(angle)*rz);b.root.rotation.y=-Math.atan2(Math.cos(angle)*rz,-Math.sin(angle)*rx);}}
+ const countdown=document.querySelector('#raceCountdown');if(countdown){if(raceState&&raceState.status==='countdown'){const left=Math.max(0,Math.ceil(((raceState.startedAt||Date.now())-Date.now())/1000));countdown.style.display='flex';countdown.textContent=left>0?String(left):'GO!';}else{countdown.style.display='none';}}
+ if(raceState&&raceBots.length){const bots=(raceState.participants||[]).filter(p=>p.bot);for(let i=0;i<raceBots.length;i++){const b=raceBots[i],p=bots[i];if(!p)continue;const runningRace=raceState.status==='running';const elapsed=runningRace?Math.max(0,(performance.now()-(raceState.startedAt||performance.now()))/1000):0;const speed=.22+i*.012,angle=(runningRace?elapsed*speed:0)+i*.48;const rx=i%2?raceCenter.rx-9:raceCenter.rx+9,rz=i%2?raceCenter.rz-9:raceCenter.rz+9;const drift=runningRace?Math.pow(Math.abs(Math.cos(angle)),3):0;const slip=Math.sin(elapsed*2.8+i)*.035;b.root.position.set(raceCenter.x+Math.cos(angle)*rx+Math.sin(angle)*drift*2,.02,Math.sin(angle)*rz);const tangent=-Math.atan2(Math.cos(angle)*rz,-Math.sin(angle)*rx);b.root.rotation.y=tangent+(Math.sin(angle)>=0?1:-1)*drift*.34+slip;if(runningRace){b.wheels.forEach(w=>w.rotation.x+=dt*22);b.root.rotation.z=Math.sin(elapsed*8+i)*drift*.035;}}}
  for(const item of remotePlayers.values()){
   item.car.root.position.x=THREE.MathUtils.lerp(item.car.root.position.x,item.targetX,.22);
   item.car.root.position.z=THREE.MathUtils.lerp(item.car.root.position.z,item.targetZ,.22);
