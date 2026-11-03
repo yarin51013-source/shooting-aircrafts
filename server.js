@@ -111,6 +111,10 @@ wss.on('connection',ws=>{
    if(Number.isFinite(x)&&Number.isFinite(z)&&Number.isFinite(heading)){
     player.x=Math.max(-2000,Math.min(2000,x));player.z=Math.max(-2000,Math.min(2000,z));player.heading=heading;
    }
+   const allowedModels=['starter','supra','gtr','porsche','huracan'];
+   const allowedMods=['wing','neon','gold'];
+   player.model=allowedModels.includes(String(msg.model))?String(msg.model):'starter';
+   player.mods=Array.isArray(msg.mods)?msg.mods.filter(v=>allowedMods.includes(v)):[];
   }
  });
  ws.on('close',()=>{players.delete(id);if(raceState){raceState.participants=raceState.participants.filter(p=>p.id!==id);if(raceState.hostId===id){raceState=null;}else if(!raceState.participants.some(p=>!p.bot))raceState=null;broadcastRace();}});
