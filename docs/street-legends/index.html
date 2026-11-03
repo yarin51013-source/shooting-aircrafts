@@ -55,7 +55,7 @@ button{border:0;border-radius:10px;padding:14px 22px;background:linear-gradient(
  <div id="speedbox" class="panel"><div id="speed">000</div><div id="unit">KM/H</div><div id="gear">GEAR 1</div></div><button id="lightToggle" type="button">LIGHTS: ON</button><div id="toast"></div><div id="raceResult"><div class="resultCard"><span id="raceResultPlace">1ST PLACE!</span><small>RACE FINISHED</small></div></div>
 </div>
 <div id="racePanel"><div class="raceCard"><div class="small">STREET LEGENDS • RACING DISTRICT</div><h2>🏁 Circuit Race</h2><p>Race 3 laps. The host chooses the grid size; AI drivers fill empty spots.</p><div id="raceSetup"><label for="raceSlots">Racers in this race</label><select id="raceSlots"><option value="2">2 racers</option><option value="3">3 racers</option><option value="4">4 racers</option><option value="5">5 racers</option><option value="6" selected>6 racers</option><option value="7">7 racers</option><option value="8">8 racers</option></select><button id="createRaceBtn">HOST A RACE</button><button id="joinRaceBtn" class="secondary">JOIN RACE</button></div><div id="raceStatus">Create a race or join another player.</div><div id="raceTimer">00:00.000</div><div id="raceRoster"></div><button id="startRaceBtn" style="display:none">START RACE</button><button id="leaveRaceBtn" class="secondary" style="display:none">LEAVE / CLOSE</button><button id="closeRaceBtn" class="secondary">CLOSE</button></div></div>
-<div id="overlay"><div id="menu"><div class="small">3D OPEN WORLD • PC DRIVING</div><h1>STREET<br><span>LEGENDS</span></h1><p>Take the wheel of your sports car. Explore a full 3D city, dodge traffic, hit the nitro and collect cash.</p><div><span class="tag">3D CITY</span><span class="tag">TRAFFIC</span><span class="tag">NITRO</span><span class="tag">GARAGE</span></div><button id="start">START DRIVING →</button><p style="font-size:11px;margin-bottom:0">Best on desktop • WASD or arrow keys</p><p style="font-size:9px;color:#8999a8;margin:7px 0 0">Engine sound: recorded car acceleration (CC0)</p></div></div>
+<div id="overlay"><div id="menu"><div class="small">3D OPEN WORLD • PC DRIVING</div><h1>STREET<br><span>LEGENDS</span></h1><p>Take the wheel of your sports car. Explore a full 3D city, dodge traffic, hit the nitro and collect cash.</p><div><span class="tag">3D CITY</span><span class="tag">TRAFFIC</span><span class="tag">NITRO</span><span class="tag">GARAGE</span></div><button id="start">START DRIVING →</button><p style="font-size:11px;margin-bottom:0">Best on desktop • WASD or arrow keys</p><p style="font-size:9px;color:#8999a8;margin:7px 0 0">Engine sound: layered sports-car engine</p></div></div>
 <div id="garage"><div class="card panel"><div class="small">YOUR GARAGE</div><h2 style="margin:7px 0">Customize your ride</h2><p style="color:#b9c4cf;font-size:13px">Choose a paint job for your car.</p><div class="swatches">
 <div class="swatch" data-color="#e52b35" style="background:#e52b35"></div><div class="swatch" data-color="#1678e8" style="background:#1678e8"></div><div class="swatch" data-color="#f0f0f0" style="background:#f0f0f0"></div><div class="swatch" data-color="#17191e" style="background:#17191e"></div><div class="swatch" data-color="#ffb52e" style="background:#ffb52e"></div><div class="swatch" data-color="#26c99a" style="background:#26c99a"></div></div><button id="closeGarage">BACK TO CITY</button></div></div>
 <script src="engine-audio.js"></script>
@@ -542,36 +542,30 @@ function initAudio(){
  if(audioCtx){if(audioCtx.state==='suspended')audioCtx.resume();return;}
  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
  audioCtx=new AC();
- // Use the exact engine audio supplied by the player, with speed-sensitive playback.
- if(window.STREET_LEGENDS_ENGINE_AUDIO){
-  engineSampleAudio=new Audio(window.STREET_LEGENDS_ENGINE_AUDIO);engineSampleAudio.loop=true;engineSampleAudio.preload='auto';engineSampleAudio.volume=0;
-  engineSampleAudio.play().catch(()=>{});
- }
- engineOsc=audioCtx.createOscillator();engineOsc.type='triangle';
- engineOsc2=audioCtx.createOscillator();engineOsc2.type='sine';
- engineFilter=audioCtx.createBiquadFilter();engineFilter.type='lowpass';engineFilter.frequency.value=1100;
+ // Layered four-cylinder sports-car engine: low firing pulses, exhaust harmonics and a restrained intake layer.
+ engineOsc=audioCtx.createOscillator();engineOsc.type='sawtooth';
+ engineOsc2=audioCtx.createOscillator();engineOsc2.type='triangle';
+ engineFilter=audioCtx.createBiquadFilter();engineFilter.type='lowpass';engineFilter.frequency.value=520;engineFilter.Q.value=.7;
  engineGain=audioCtx.createGain();engineGain.gain.value=0;
- const engineMix=audioCtx.createGain();engineMix.gain.value=.3;
+ const engineMix=audioCtx.createGain();engineMix.gain.value=.24;
  engineOsc.connect(engineFilter);engineOsc2.connect(engineFilter);engineFilter.connect(engineMix);engineMix.connect(engineGain);engineGain.connect(audioCtx.destination);
  engineOsc.start();engineOsc2.start();
- // Soft filtered intake/exhaust texture adds a little real-world engine breath.
- const engineNoiseBuffer=audioCtx.createBuffer(1,audioCtx.sampleRate*2,audioCtx.sampleRate),engineNoiseData=engineNoiseBuffer.getChannelData(0);
- for(let i=0;i<engineNoiseData.length;i++)engineNoiseData[i]=(Math.random()*2-1)*.45;
- engineNoise=audioCtx.createBufferSource();engineNoise.buffer=engineNoiseBuffer;engineNoise.loop=true;
- engineNoiseFilter=audioCtx.createBiquadFilter();engineNoiseFilter.type='bandpass';engineNoiseFilter.frequency.value=620;engineNoiseFilter.Q.value=.65;
+ const noiseBuffer=audioCtx.createBuffer(1,audioCtx.sampleRate*2,audioCtx.sampleRate),noiseData=noiseBuffer.getChannelData(0);
+ for(let i=0;i<noiseData.length;i++)noiseData[i]=(Math.random()*2-1)*.22;
+ engineNoise=audioCtx.createBufferSource();engineNoise.buffer=noiseBuffer;engineNoise.loop=true;
+ engineNoiseFilter=audioCtx.createBiquadFilter();engineNoiseFilter.type='bandpass';engineNoiseFilter.frequency.value=850;engineNoiseFilter.Q.value=.55;
  engineNoiseGain=audioCtx.createGain();engineNoiseGain.gain.value=0;
  engineNoise.connect(engineNoiseFilter);engineNoiseFilter.connect(engineNoiseGain);engineNoiseGain.connect(audioCtx.destination);engineNoise.start();
- // A separate, deeper performance-car layer fades in above 173 km/h.
  highSpeedOsc=audioCtx.createOscillator();highSpeedOsc.type='sawtooth';
- highSpeedOsc2=audioCtx.createOscillator();highSpeedOsc2.type='square';
- highSpeedFilter=audioCtx.createBiquadFilter();highSpeedFilter.type='lowpass';highSpeedFilter.frequency.value=900;
+ highSpeedOsc2=audioCtx.createOscillator();highSpeedOsc2.type='triangle';
+ highSpeedFilter=audioCtx.createBiquadFilter();highSpeedFilter.type='lowpass';highSpeedFilter.frequency.value=950;
  highSpeedGain=audioCtx.createGain();highSpeedGain.gain.value=0;
- const highSpeedMix=audioCtx.createGain();highSpeedMix.gain.value=.16;
+ const highSpeedMix=audioCtx.createGain();highSpeedMix.gain.value=.08;
  highSpeedOsc.connect(highSpeedFilter);highSpeedOsc2.connect(highSpeedFilter);highSpeedFilter.connect(highSpeedMix);highSpeedMix.connect(highSpeedGain);highSpeedGain.connect(audioCtx.destination);
  highSpeedOsc.start();highSpeedOsc2.start();
- const buffer=audioCtx.createBuffer(1,audioCtx.sampleRate*2,audioCtx.sampleRate),data=buffer.getChannelData(0);
- for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;
- tireNoise=audioCtx.createBufferSource();tireNoise.buffer=buffer;tireNoise.loop=true;
+ const tireBuffer=audioCtx.createBuffer(1,audioCtx.sampleRate*2,audioCtx.sampleRate),tireData=tireBuffer.getChannelData(0);
+ for(let i=0;i<tireData.length;i++)tireData[i]=Math.random()*2-1;
+ tireNoise=audioCtx.createBufferSource();tireNoise.buffer=tireBuffer;tireNoise.loop=true;
  const tireFilter=audioCtx.createBiquadFilter();tireFilter.type='bandpass';tireFilter.frequency.value=1450;
  tireGain=audioCtx.createGain();tireGain.gain.value=0;tireNoise.connect(tireFilter);tireFilter.connect(tireGain);tireGain.connect(audioCtx.destination);tireNoise.start();
 }
@@ -609,43 +603,34 @@ function updateAudio(){
  const throttle=(keys.KeyW||keys.w||keys.arrowup)?1:0;
  const reverse=(keys.KeyS||keys.s||keys.arrowdown)?1:0;
  const boost=keys.ShiftLeft||keys.ShiftRight||keys.shift;
- // Simulated automatic transmission: revs climb under throttle, then fall on each upshift.
  const gear=Math.min(6,Math.floor(speed/9)+1);
  const gearProgress=Math.min(1,(speed-(gear-1)*9)/9);
- const load=throttle?1:(reverse ? .48 : .12);
- const revving=throttle*Math.max(0,1-speed/28);
- const rpm=38+gearProgress*78+load*30+revving*66+(boost?22:0);
+ const load=throttle?1:(reverse?.72:.16);
+ const revving=throttle*Math.max(0,1-speed/34);
+ const engineRpm=820+gearProgress*760+load*900+revving*1550+(boost?420:0);
+ const firingHz=engineRpm/30;
  const now=audioCtx.currentTime;
- engineOsc.frequency.setTargetAtTime(rpm,now,.075);
- engineOsc2.frequency.setTargetAtTime(rpm*2.01,now,.085);
- engineFilter.frequency.setTargetAtTime(360+gearProgress*760+load*520+revving*420,now,.09);
- // Throaty, layered performance-car engine: low rumble at idle, louder revs under throttle.
- const engineVolume=.0001;
- engineGain.gain.setTargetAtTime(engineVolume,now,.08);
- engineNoiseFilter.frequency.setTargetAtTime(360+rpm*9+throttle*1050,now,.1);
- engineNoiseGain.gain.setTargetAtTime(.0001,now,.1);
- if(engineSampleAudio&&engineSampleGain){
-  const sampleRate=THREE.MathUtils.clamp(.9+speed/90+throttle*.14+(boost?.12:0),.9,1.65);
-  engineSampleAudio.playbackRate=sampleRate;
-  if(engineSampleAudio.paused&&active)engineSampleAudio.play().catch(()=>{});
-  engineSampleAudio.volume=active?.85:0;
- }
+ engineOsc.frequency.setTargetAtTime(firingHz,now,.065);
+ engineOsc2.frequency.setTargetAtTime(firingHz*2.02,now,.075);
+ engineFilter.frequency.setTargetAtTime(420+gearProgress*260+load*360+revving*380,now,.09);
+ engineGain.gain.setTargetAtTime(active?.145+throttle*.075+(boost?.018:0):.0001,now,.1);
+ engineNoiseFilter.frequency.setTargetAtTime(620+gearProgress*220+throttle*1050,now,.1);
+ engineNoiseGain.gain.setTargetAtTime(active?.012+throttle*.018:.0001,now,.12);
  if(active&&throttle&&gear>lastAudioGear)playSfx('shift');
  lastAudioGear=gear;
- // High-RPM exhaust harmonics become prominent above 173 km/h.
  const highSpeed=Math.max(0,Math.min(1,(speed-48.1)/9));
- highSpeedOsc.frequency.setTargetAtTime(105+rpm*1.65+throttle*35,now,.06);
- highSpeedOsc2.frequency.setTargetAtTime(165+rpm*2.25+throttle*48,now,.07);
- highSpeedFilter.frequency.setTargetAtTime(580+highSpeed*1450+throttle*440,now,.08);
- highSpeedGain.gain.setTargetAtTime(.0001,now,.08);
+ highSpeedOsc.frequency.setTargetAtTime(firingHz*1.5+35,now,.07);
+ highSpeedOsc2.frequency.setTargetAtTime(firingHz*2.8+50,now,.08);
+ highSpeedFilter.frequency.setTargetAtTime(650+highSpeed*800+throttle*350,now,.09);
+ highSpeedGain.gain.setTargetAtTime(active?highSpeed*.012:.0001,now,.12);
  const drifting=active&&keys[' ']&&speed>17&&(keys.KeyA||keys.a||keys.arrowleft||keys.KeyD||keys.d||keys.arrowright);
  tireGain.gain.setTargetAtTime(drifting ? .12 : 0,now,.09);
- // Nitro is visual + acceleration only; no synthetic low-pitched boom.
+ // Nitro adds engine load only; no booming effect.
  nitroWasOn=!!(active&&nitroPrimed&&boost&&speed>5);
 }
 function setSound(on){
  audioEnabled=on;const b=document.querySelector('#soundToggle');b.textContent='SOUND: '+(on?'ON':'OFF');b.classList.toggle('off',!on);
- if(on)initAudio();else{nitroWasOn=false;if(audioCtx&&engineGain){engineGain.gain.setTargetAtTime(0,audioCtx.currentTime,.04);if(engineSampleGain)engineSampleGain.gain.setTargetAtTime(0,audioCtx.currentTime,.04);tireGain.gain.setTargetAtTime(0,audioCtx.currentTime,.04);}}
+ if(on)initAudio();else{nitroWasOn=false;if(audioCtx&&engineGain){engineGain.gain.setTargetAtTime(0,audioCtx.currentTime,.04);tireGain.gain.setTargetAtTime(0,audioCtx.currentTime,.04);}}
 }
 document.querySelector('#soundToggle').addEventListener('click',()=>setSound(!audioEnabled));
 addEventListener('keydown',e=>{
