@@ -616,14 +616,16 @@ function updateAudio(){
  const gearProgress=Math.min(1,(speed-(gear-1)*9)/9);
  const load=throttle?1:(reverse ? .48 : .12);
  const revving=throttle*Math.max(0,1-speed/28);
- const rpm=29+gearProgress*66+load*24+revving*52+(boost?17:0);
+ const rpm=38+gearProgress*78+load*30+revving*66+(boost?22:0);
  const now=audioCtx.currentTime;
  engineOsc.frequency.setTargetAtTime(rpm,now,.075);
  engineOsc2.frequency.setTargetAtTime(rpm*2.01,now,.085);
- engineFilter.frequency.setTargetAtTime(310+gearProgress*620+load*390+revving*300,now,.09);
- engineGain.gain.setTargetAtTime(0,now,.08);
- engineNoiseFilter.frequency.setTargetAtTime(420+rpm*8+throttle*850,now,.1);
- engineNoiseGain.gain.setTargetAtTime(0,now,.08);
+ engineFilter.frequency.setTargetAtTime(360+gearProgress*760+load*520+revving*420,now,.09);
+ // Throaty, layered performance-car engine: low rumble at idle, louder revs under throttle.
+ const engineVolume=active?(speed<1?.055:.105+throttle*.075+Math.min(.045,speed/900)):.0001;
+ engineGain.gain.setTargetAtTime(engineVolume,now,.08);
+ engineNoiseFilter.frequency.setTargetAtTime(360+rpm*9+throttle*1050,now,.1);
+ engineNoiseGain.gain.setTargetAtTime(active?(speed<1?.012:.025+throttle*.035):.0001,now,.1);
  if(engineSampleAudio&&engineSampleGain){
   const sampleRate=THREE.MathUtils.clamp(.78+speed/78+throttle*.10+(boost?.12:0),.78,1.72);
   engineSampleAudio.playbackRate=sampleRate;
@@ -638,7 +640,7 @@ function updateAudio(){
  highSpeedOsc.frequency.setTargetAtTime(105+rpm*1.65+throttle*35,now,.06);
  highSpeedOsc2.frequency.setTargetAtTime(165+rpm*2.25+throttle*48,now,.07);
  highSpeedFilter.frequency.setTargetAtTime(580+highSpeed*1450+throttle*440,now,.08);
- highSpeedGain.gain.setTargetAtTime(0,now,.08);
+ highSpeedGain.gain.setTargetAtTime(active?(.018+highSpeed*.055+throttle*.018):.0001,now,.08);
  const drifting=active&&keys[' ']&&speed>17&&(keys.KeyA||keys.a||keys.arrowleft||keys.KeyD||keys.d||keys.arrowright);
  tireGain.gain.setTargetAtTime(drifting ? .12 : 0,now,.09);
  if(active&&nitroPrimed&&boost&&speed>5&&!nitroWasOn)playSfx('nitro');
