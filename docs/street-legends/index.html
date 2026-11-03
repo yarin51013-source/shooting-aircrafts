@@ -549,9 +549,9 @@ function initAudio(){
   engineSampleGain=audioCtx.createGain();engineSampleGain.gain.value=0;engineSampleSource.connect(engineSampleFilter);engineSampleFilter.connect(engineSampleGain);engineSampleGain.connect(audioCtx.destination);
   engineSampleAudio.play().catch(()=>{});
  }
- engineOsc=audioCtx.createOscillator();engineOsc.type='sawtooth';
- engineOsc2=audioCtx.createOscillator();engineOsc2.type='triangle';
- engineFilter=audioCtx.createBiquadFilter();engineFilter.type='lowpass';engineFilter.frequency.value=420;
+ engineOsc=audioCtx.createOscillator();engineOsc.type='triangle';
+ engineOsc2=audioCtx.createOscillator();engineOsc2.type='sine';
+ engineFilter=audioCtx.createBiquadFilter();engineFilter.type='lowpass';engineFilter.frequency.value=1100;
  engineGain=audioCtx.createGain();engineGain.gain.value=0;
  const engineMix=audioCtx.createGain();engineMix.gain.value=.3;
  engineOsc.connect(engineFilter);engineOsc2.connect(engineFilter);engineFilter.connect(engineMix);engineMix.connect(engineGain);engineGain.connect(audioCtx.destination);
@@ -640,7 +640,7 @@ function updateAudio(){
  highSpeedOsc.frequency.setTargetAtTime(105+rpm*1.65+throttle*35,now,.06);
  highSpeedOsc2.frequency.setTargetAtTime(165+rpm*2.25+throttle*48,now,.07);
  highSpeedFilter.frequency.setTargetAtTime(580+highSpeed*1450+throttle*440,now,.08);
- highSpeedGain.gain.setTargetAtTime(.0001,now,.08);
+ highSpeedGain.gain.setTargetAtTime(active?.012:.0001,now,.08);
  const drifting=active&&keys[' ']&&speed>17&&(keys.KeyA||keys.a||keys.arrowleft||keys.KeyD||keys.d||keys.arrowright);
  tireGain.gain.setTargetAtTime(drifting ? .12 : 0,now,.09);
  // Nitro is visual + acceleration only; no synthetic low-pitched boom.
