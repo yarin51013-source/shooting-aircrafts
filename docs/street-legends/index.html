@@ -335,16 +335,17 @@ function makeNameTag(label){
   tex.needsUpdate=true;
  }
  const tex=new THREE.CanvasTexture(cv);tex.colorSpace=THREE.SRGBColorSpace;
- const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
- sprite.scale.set(4.2,1.05,1);sprite.position.set(0,3.25,0);sprite.renderOrder=20;
+ const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false,depthWrite:false}));
+ sprite.scale.set(4.2,1.05,1);sprite.position.set(0,3.25,0);sprite.renderOrder=9999;sprite.frustumCulled=false;
  sprite.setLabel=draw;draw(label);return sprite;
 }
 function setPlayerName(value){
- if(localStorage.getItem('streetLegendsName'))return;
+ if(localStorage.getItem('streetLegendsNameChosenV2'))return;
  const chosen=String(value||'').replace(/[<>]/g,'').trim().slice(0,18);
  if(!chosen){document.querySelector('#nameStatus').textContent='Enter a name';return;}
  playerName=chosen;
  localStorage.setItem('streetLegendsName',playerName);
+ localStorage.setItem('streetLegendsNameChosenV2','1');
  localNameTag.setLabel(playerName);
  document.querySelector('#namePanel').style.display='none';
  if(networkSocket&&networkSocket.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'name',name:playerName}));
