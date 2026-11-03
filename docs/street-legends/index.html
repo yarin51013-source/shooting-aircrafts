@@ -790,7 +790,7 @@ function update(dt){
    }
   }
  }
- for(const p of pickups){p.rotation.y+=dt*1.6;if(p.visible&&p.position.distanceTo(car.root.position)<4){p.visible=false;money+=100;document.querySelector('#money').textContent=money.toLocaleString();playSfx('cash');toast('+$100 CASH');}}
+ for(const p of pickups){p.rotation.y+=dt*1.6;if(p.visible&&p.position.distanceTo(car.root.position)<4){p.visible=false;money+=100;localStorage.setItem('streetLegendsCash',String(money));document.querySelector('#money').textContent=money.toLocaleString();playSfx('cash');toast('+$100 CASH');}}
  for(const t of traffic){
    const previous=t.coord;t.coord+=t.direction*t.speed*dt;
    if(t.coord>780)t.coord=-780;if(t.coord< -780)t.coord=780;
