@@ -547,7 +547,7 @@ addEventListener('keydown',e=>{
 addEventListener('keyup',e=>{keys[e.code]=false;keys[e.key.toLowerCase()]=false;});
 function toast(t){const el=document.querySelector('#toast');el.textContent=t;el.style.opacity=1;clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.style.opacity=0,1600);}
 function hideNitroFlames(){for(const f of car.nitroFlames){f.flame.visible=false;f.middle.visible=false;f.core.visible=false;}}
-function resetCar(){hideNitroFlames();nitroPrimed=false;rampVerticalVelocity=0;rampCooldown=0;for(const k of Object.keys(keys))keys[k]=false;car.root.position.set(0,0,12);car.root.rotation.set(0,0,0);heading=0;steer=0;driftAngle=0;velocity=0;health=100;toast('CAR RESET');}
+function resetCar(){hideNitroFlames();nitroPrimed=false;rampVerticalVelocity=0;rampCooldown=0;rampFlipActive=false;rampFlipUsedThisJump=false;car.root.rotation.x=0;for(const k of Object.keys(keys))keys[k]=false;car.root.position.set(0,0,12);car.root.rotation.set(0,0,0);heading=0;steer=0;driftAngle=0;velocity=0;health=100;toast('CAR RESET');}
 function openGarage(){if(!running)return;paused=true;document.querySelector('#garage').style.display='flex';}
 document.querySelector('#resetButton').addEventListener('click',()=>resetCar());
 document.querySelector('#garageButton').addEventListener('click',()=>openGarage());
@@ -557,7 +557,8 @@ document.querySelector('#lightToggle').addEventListener('click',()=>setLights(!l
 document.querySelector('#closeGarage').onclick=()=>{document.querySelector('#garage').style.display='none';paused=false;};
 function togglePause(){paused=!paused;document.querySelector('#overlay').style.display=paused?'flex':'none';document.querySelector('#menu h1').innerHTML=paused?'GAME<br><span>PAUSED</span>':'STREET<br><span>LEGENDS</span>';document.querySelector('#menu p').textContent=paused?'Take a breather. The city will be waiting.':'Take the wheel of your sports car and explore the city.';document.querySelector('#start').textContent=paused?'RESUME DRIVING →':'START DRIVING →';}
 document.querySelector('#start').onclick=()=>{initAudio();hideNitroFlames();nitroPrimed=false;keys.ShiftLeft=false;keys.ShiftRight=false;keys.shift=false;velocity=0;driftAngle=0;running=true;paused=false;document.querySelector('#overlay').style.display='none';};
-let rampVerticalVelocity=0,rampCooldown=0;
+let rampVerticalVelocity=0,rampCooldown=0,rampFlipActive=false,rampFlipUsedThisJump=false,rampFlipTimer=0;
+const rampFlipDuration=.78;
 function update(dt){
  if(!running||paused){hideNitroFlames();updateAudio();return;}
  const forward=keys.KeyW||keys.w||keys.arrowup,back=keys.KeyS||keys.s||keys.arrowdown,left=keys.KeyA||keys.a||keys.arrowleft,right=keys.KeyD||keys.d||keys.arrowright,boost=keys.ShiftLeft||keys.ShiftRight||keys.shift;
@@ -597,12 +598,22 @@ function update(dt){
  rampCooldown=Math.max(0,rampCooldown-dt);
  for(const ramp of streetRamps){
   if(rampCooldown<=0&&Math.abs(car.root.position.x-ramp.x)<4.2&&Math.abs(car.root.position.z-ramp.z)<6.2&&velocity>13&&car.root.position.y<.8){
-   rampVerticalVelocity=Math.min(19,10+velocity*.16);rampCooldown=1.15;playSfx('shift');toast('RAMP JUMP!');
+   rampVerticalVelocity=Math.min(19,10+velocity*.16);rampCooldown=1.15;rampFlipActive=false;rampFlipUsedThisJump=false;rampFlipTimer=0;car.root.rotation.x=0;playSfx('shift');toast('RAMP JUMP!');
   }
  }
  if(car.root.position.y>0||rampVerticalVelocity>0){
   rampVerticalVelocity-=29*dt;car.root.position.y+=rampVerticalVelocity*dt;
-  if(car.root.position.y<=0){car.root.position.y=0;rampVerticalVelocity=0;}
+  if(car.root.position.y<=0){
+   car.root.position.y=0;rampVerticalVelocity=0;car.root.rotation.x=0;rampFlipActive=false;rampFlipUsedThisJump=false;
+  }else{
+   // Press SPACE during a ramp jump to perform one complete forward flip.
+   if(handbrake&&!rampFlipUsedThisJump){rampFlipActive=true;rampFlipUsedThisJump=true;rampFlipTimer=0;toast('FLIP!');}
+   if(rampFlipActive){
+    rampFlipTimer=Math.min(rampFlipDuration,rampFlipTimer+dt);
+    car.root.rotation.x=(rampFlipTimer/rampFlipDuration)*Math.PI*2;
+    if(rampFlipTimer>=rampFlipDuration)rampFlipActive=false;
+   }
+  }
  }
  for(const p of pickups){p.rotation.y+=dt*1.6;if(p.visible&&p.position.distanceTo(car.root.position)<4){p.visible=false;money+=100;document.querySelector('#money').textContent=money.toLocaleString();playSfx('cash');toast('+$100 CASH');}}
  for(const t of traffic){
