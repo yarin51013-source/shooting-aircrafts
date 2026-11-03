@@ -662,7 +662,7 @@ function update(dt){
  if(!running||paused){hideNitroFlames();updateAudio();return;}
  if(raceState&&raceState.status==='countdown'){velocity=0;driftAngle=0;hideNitroFlames();car.brakeLamps.forEach(m=>m.emissiveIntensity=2.4);updateAudio();return;}
  const forward=keys.KeyW||keys.w||keys.arrowup,back=keys.KeyS||keys.s||keys.arrowdown,left=keys.KeyA||keys.a||keys.arrowleft,right=keys.KeyD||keys.d||keys.arrowright,boost=keys.ShiftLeft||keys.ShiftRight||keys.shift;
- const padBoostActive=!!(raceState&&raceState.status==='running'&&Date.now()<racePadBoostUntil);let accel=padBoostActive?48:(boost?37:23),max=padBoostActive?76:(boost?68:48);if(forward){if(padBoostActive||Math.abs(velocity)<48||velocity<0)velocity+=accel*dt;}else if(back)velocity-=32*dt;else velocity*=Math.pow(.982,dt*60);if(!padBoostActive&&Math.abs(velocity)>48)velocity-=Math.sign(velocity)*Math.min(Math.abs(velocity)-48,10*dt);
+ const padBoostActive=!!(raceState&&raceState.status==='running'&&Date.now()<racePadBoostUntil);let accel=padBoostActive?48:(boost?37:23),max=padBoostActive?76:(boost?68:48);if(forward){if(padBoostActive||Math.abs(velocity)<48||velocity<0)velocity+=accel*dt;}else if(back)velocity-=32*dt;else velocity*=Math.pow(.982,dt*60);if(!padBoostActive&&Math.abs(velocity)>48){velocity-=Math.sign(velocity)*Math.min(Math.abs(velocity)-48,10*dt);max=Math.max(48,Math.abs(velocity));}
  velocity=THREE.MathUtils.clamp(velocity,-18,max);const speedFactor=Math.min(Math.abs(velocity)/18,1);
  const handbrake=!!keys[' '],steerInput=(left?1:0)-(right?1:0);
  // Handbrake reduces rear grip so the car rotates into a controllable slide.
