@@ -347,7 +347,8 @@ function setPlayerName(value){
  localStorage.setItem('streetLegendsName',playerName);
  localStorage.setItem('streetLegendsNameChosenV2','1');
  localNameTag.setLabel(playerName);
- document.querySelector('#namePanel').style.display='none';
+ const namePanel=document.querySelector('#namePanel');
+ if(namePanel)namePanel.remove();
  if(networkSocket&&networkSocket.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type:'name',name:playerName}));
 }
 function connectMultiplayer(){
