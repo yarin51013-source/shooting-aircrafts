@@ -100,10 +100,10 @@ wss.on('connection',ws=>{
    broadcastRace();return;
   }
   if(msg.type==='race-start'&&raceState&&raceState.hostId===id&&raceState.status==='lobby'){
-   raceState.status='countdown';raceState.startedAt=Date.now()+3000;broadcastRace();setTimeout(()=>{if(raceState&&raceState.status==='countdown'){raceState.status='running';raceState.startedAt=Date.now();broadcastRace();}},3000);return;
+   raceState.status='countdown';raceState.startedAt=Date.now()+3000;broadcastRace();setTimeout(()=>{if(raceState&&raceState.status==='countdown'){raceState.status='running';raceState.startedAt=Date.now();raceState.participants.forEach((p,i)=>{if(p.bot)p.finishAfter=52+((i*17+Math.floor(Math.random()*24))%58);});broadcastRace();}},3000);return;
   }
   if(msg.type==='race-progress'&&raceState&&raceState.status==='running'){const p=raceState.participants.find(p=>p.id===id);if(p&&!p.bot)p.lap=Math.max(p.lap,Math.min(3,Number(msg.lap)||0));broadcastRace();return;}
-  if(msg.type==='race-finish'&&raceState&&raceState.status==='running'){const p=raceState.participants.find(p=>p.id===id);if(p&&!p.bot){p.finished=true;p.lap=3;p.time=Math.max(0,Number(msg.time)||0);}if(raceState.participants.filter(p=>!p.bot).every(p=>p.finished)){raceState.participants.forEach(q=>{if(q.bot){q.finished=true;q.lap=3;}});raceState.status='complete';}broadcastRace();return;}
+  if(msg.type==='race-finish'&&raceState&&raceState.status==='running'){const p=raceState.participants.find(p=>p.id===id);if(p&&!p.bot&&!p.finished){p.finished=true;p.lap=3;p.time=Math.max(0,Number(msg.time)||0);p.rank=raceState.participants.filter(q=>q.finished).length;}if(raceState.participants.every(q=>q.finished))raceState.status='complete';broadcastRace();return;}
   if(msg.type==='race-leave'&&raceState){if(raceState.hostId===id){raceState=null;}else{raceState.participants=raceState.participants.filter(p=>p.id!==id);if(!raceState.participants.some(p=>!p.bot)){raceState=null;}}broadcastRace();return;}
   if(msg.type==='state'){
    const x=Number(msg.x),z=Number(msg.z),heading=Number(msg.heading);
@@ -115,6 +115,7 @@ wss.on('connection',ws=>{
  ws.on('close',()=>{players.delete(id);if(raceState){raceState.participants=raceState.participants.filter(p=>p.id!==id);if(raceState.hostId===id){raceState=null;}else if(!raceState.participants.some(p=>!p.bot))raceState=null;broadcastRace();}});
  ws.on('error',()=>players.delete(id));
 });
+setInterval(()=>{if(!raceState||raceState.status!=='running')return;const elapsed=(Date.now()-raceState.startedAt)/1000;let changed=false;for(const p of raceState.participants){if(p.bot&&!p.finished&&Number.isFinite(p.finishAfter)&&elapsed>=p.finishAfter){p.finished=true;p.lap=3;p.time=p.finishAfter;p.rank=raceState.participants.filter(q=>q.finished).length;changed=true;}}if(raceState.participants.every(p=>p.finished)){raceState.status='complete';changed=true;}if(changed)broadcastRace();},500);
 setInterval(()=>{
  const snapshot=JSON.stringify({type:'players',players:[...players.values()]});
  for(const client of wss.clients)if(client.readyState===1)client.send(snapshot);
