@@ -404,7 +404,7 @@ const localNameTag=makeNameTag(localStorage.getItem('streetLegendsName')||'Playe
 car.root.add(localNameTag);
 let playerId=null,networkSocket=null,lastNetSend=0,playerName=localStorage.getItem('streetLegendsName')||'Player';
 const remotePlayers=new Map();
-let raceState=null,raceBots=[],raceJoined=false,raceStartedLocal=false,raceStartLocal=0,raceLap=0,raceNextGate=1,raceFinishSent=false,racePadBoostUntil=0;let raceLapGateCooldownUntil=0;
+let raceState=null,raceBots=[],raceJoined=false,raceStartedLocal=false,raceSessionId=null,raceStartLocal=0,raceLap=0,raceNextGate=1,raceFinishSent=false,racePadBoostUntil=0;let raceLapGateCooldownUntil=0;
 function makeNameTag(label){
  const cv=document.createElement('canvas');cv.width=512;cv.height=128;
  const ctx=cv.getContext('2d');
@@ -447,7 +447,45 @@ function connectMultiplayer(){
    if(data.type==='race-error'){const status=document.querySelector('#raceStatus');if(status)status.textContent=data.message||'Could not join the race.';}
  });
 }
-function setRaceState(state){raceState=state;const status=document.querySelector("#raceStatus"),roster=document.querySelector("#raceRoster"),start=document.querySelector("#startRaceBtn"),leave=document.querySelector("#leaveRaceBtn"),setup=document.querySelector("#raceSetup"),hud=document.querySelector("#raceHud");if(!state){raceJoined=false;raceStartedLocal=false;raceBots.forEach(b=>scene.remove(b.root));raceBots=[];if(status)status.textContent="Create a race or join another player.";if(roster)roster.textContent="";if(start)start.style.display="none";if(leave)leave.style.display="none";if(setup)setup.style.display="block";if(hud)hud.style.display="none";return;}raceJoined=(state.participants||[]).some(p=>p.id===playerId&&!p.bot);if(setup)setup.style.display=(state.status==="lobby"&&!raceJoined)||state.status==="complete"?"block":"none";if(start)start.style.display=state.hostId===playerId&&state.status==="lobby"?"inline-block":"none";if(leave)leave.style.display="inline-block";if(status)status.textContent=state.status==="lobby"?(state.hostId===playerId?"You are hosting. AI fills empty spots when you start.":"Race lobby open — join to compete."):(state.status==="countdown"?"Race starting! Get ready…":state.status==="running"?"RACE IN PROGRESS":state.status==="complete"?"Race complete!":"Race lobby");if(roster)roster.innerHTML=(state.participants||[]).map((p,i)=>(i+1)+". "+String(p.name||"Driver").replace(/[<>]/g,"")+(p.bot?" · AI":"")+(p.finished?" · FINISHED":"")).join("<br>");if(hud)hud.style.display=state.status==="countdown"||state.status==="running"?"block":"none";if(state.status==="running"){raceStartLocal=state.startedAt||Date.now();}if(state.status==="countdown"&&!raceStartedLocal){raceStartedLocal=true;raceStartLocal=state.startedAt||Date.now()+5000;raceLap=0;raceNextGate=1;raceFinishSent=false;racePadBoostUntil=0;raceLapGateCooldownUntil=Date.now()+3500;const gridIndex=(state.participants||[]).findIndex(p=>p.id===playerId);if(gridIndex>=0){const row=Math.floor(gridIndex/2),lane=(gridIndex%2===0?-1:1)*7;car.root.position.set(raceCenter.x-row*8,0,-raceCenter.rz+lane);heading=-Math.PI/2;car.root.rotation.set(0,heading,0);velocity=0;}}const bots=(state.participants||[]).filter(p=>p.bot);while(raceBots.length<bots.length){const b=makeCar([0x2686db,0x24b68a,0xe8e8e8,0xa85de8,0xff8a31,0xd94c76,0x8ca3b8][raceBots.length%7],false);scene.add(b.root);raceBots.push(b);}while(raceBots.length>bots.length){scene.remove(raceBots.pop().root);}}
+function setRaceState(state){
+ const incomingId=state?.id||null;
+ if(incomingId!==raceSessionId){raceSessionId=incomingId;raceStartedLocal=false;}
+ raceState=state;
+ const status=document.querySelector("#raceStatus"),roster=document.querySelector("#raceRoster"),start=document.querySelector("#startRaceBtn"),leave=document.querySelector("#leaveRaceBtn"),setup=document.querySelector("#raceSetup"),hud=document.querySelector("#raceHud");
+ if(!state){
+  raceJoined=false;raceStartedLocal=false;raceSessionId=null;
+  raceBots.forEach(b=>scene.remove(b.root));raceBots=[];
+  if(status)status.textContent="Create a race or join another player.";
+  if(roster)roster.textContent="";
+  if(start)start.style.display="none";
+  if(leave)leave.style.display="none";
+  if(setup)setup.style.display="block";
+  if(hud)hud.style.display="none";
+  return;
+ }
+ raceJoined=(state.participants||[]).some(p=>p.id===playerId&&!p.bot);
+ if(setup)setup.style.display=(state.status==="lobby"&&!raceJoined)||state.status==="complete"?"block":"none";
+ if(start)start.style.display=state.hostId===playerId&&state.status==="lobby"?"inline-block":"none";
+ if(leave)leave.style.display="inline-block";
+ if(status)status.textContent=state.status==="lobby"?(state.hostId===playerId?"You are hosting. Players replace AI racers as they join.":"Race lobby open — you're in the grid!"):(state.status==="countdown"?"Race starting! Get ready…":state.status==="running"?"RACE IN PROGRESS":state.status==="complete"?"Race complete!":"Race lobby");
+ if(roster)roster.innerHTML=(state.participants||[]).map((p,i)=>(i+1)+". "+String(p.name||"Driver").replace(/[<>]/g,"")+(p.bot?" · AI":" · PLAYER")+(p.finished?" · FINISHED":"")).join("<br>");
+ if(hud)hud.style.display=state.status==="countdown"||state.status==="running"?"block":"none";
+ if(state.status==="running")raceStartLocal=state.startedAt||Date.now();
+ if(state.status==="countdown"&&!raceStartedLocal){
+  raceStartedLocal=true;raceStartLocal=state.startedAt||Date.now()+3000;
+  raceLap=0;raceNextGate=1;raceFinishSent=false;racePadBoostUntil=0;raceLapGateCooldownUntil=Date.now()+3500;
+  const gridIndex=(state.participants||[]).findIndex(p=>p.id===playerId&&!p.bot);
+  if(gridIndex>=0){
+   const row=Math.floor(gridIndex/2),lane=(gridIndex%2===0?-1:1)*7;
+   car.root.position.set(raceCenter.x-row*8,0,-raceCenter.rz+lane);
+   heading=-Math.PI/2;car.root.rotation.set(0,heading,0);velocity=0;driftAngle=0;
+   toast("RACE GRID — POSITION "+(gridIndex+1));
+  }
+ }
+ const bots=(state.participants||[]).filter(p=>p.bot);
+ while(raceBots.length<bots.length){const b=makeCar([0x2686db,0x24b68a,0xe8e8e8,0xa85de8,0xff8a31,0xd94c76,0x8ca3b8][raceBots.length%7],false);scene.add(b.root);raceBots.push(b);}
+ while(raceBots.length>bots.length){scene.remove(raceBots.pop().root);}
+}
 function raceMessage(type,extra={}){if(networkSocket&&networkSocket.readyState===WebSocket.OPEN)networkSocket.send(JSON.stringify({type,...extra}));}
 function syncRemotePlayers(list){
  const active=new Set();
