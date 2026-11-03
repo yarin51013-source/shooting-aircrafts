@@ -392,7 +392,14 @@ nameInput.addEventListener('keypress',e=>e.stopPropagation(),true);
 nameInput.addEventListener('beforeinput',e=>e.stopPropagation(),true);
 nameInput.addEventListener('input',e=>{nameInput.value=nameInput.value.slice(0,18);});
 
-document.querySelector('#playerName').value=playerName;
+const savedPlayerName=localStorage.getItem('streetLegendsName');
+if(savedPlayerName&&savedPlayerName.trim()){
+ localStorage.setItem('streetLegendsNameChosenV2','1');
+ const namePanel=document.querySelector('#namePanel');
+ if(namePanel)namePanel.remove();
+}else{
+ document.querySelector('#playerName').value='';
+}
 connectMultiplayer();
 
 // Lightweight car lighting and soft contact shadows; no expensive real-time shadow maps.
