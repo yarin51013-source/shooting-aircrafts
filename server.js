@@ -84,15 +84,14 @@ wss.on('connection',ws=>{
   if(msg.type==='race-create'){
    if(raceState&&raceState.status!=='complete')return;
    const maxPlayers=Math.max(2,Math.min(8,Math.floor(Number(msg.maxPlayers)||6)));
-   raceState={status:'lobby',hostId:id,maxPlayers,laps:3,startedAt:null,participants:[{id,name:player.name,bot:false,lap:0,finished:false,time:null}]};broadcastRace();return;
+   raceState={status:'lobby',hostId:id,maxPlayers,laps:3,startedAt:null,participants:[{id,name:player.name,bot:false,lap:0,finished:false,time:null}]};while(raceState.participants.length<maxPlayers){const n=raceState.participants.filter(p=>p.bot).length+1;raceState.participants.push({id:'bot-'+n,name:'AI Racer '+n,bot:true,lap:0,finished:false,time:null});}broadcastRace();return;
   }
   if(msg.type==='race-join'){
    if(!raceState||raceState.status!=='lobby'||raceState.participants.some(p=>p.id===id))return;
    if(raceState.participants.length>=raceState.maxPlayers){send(ws,{type:'race-error',message:'Race is full.'});return;}
-   raceState.participants.push({id,name:player.name,bot:false,lap:0,finished:false,time:null});broadcastRace();return;
+   const botIndex=raceState.participants.findIndex(p=>p.bot);const human={id,name:player.name,bot:false,lap:0,finished:false,time:null};if(botIndex>=0)raceState.participants[botIndex]=human;else raceState.participants.push(human);broadcastRace();return;
   }
   if(msg.type==='race-start'&&raceState&&raceState.hostId===id&&raceState.status==='lobby'){
-   while(raceState.participants.length<raceState.maxPlayers){const n=raceState.participants.filter(p=>p.bot).length+1;raceState.participants.push({id:'bot-'+n,name:'AI Racer '+n,bot:true,lap:0,finished:false,time:null});}
    raceState.status='countdown';raceState.startedAt=Date.now()+5000;broadcastRace();setTimeout(()=>{if(raceState&&raceState.status==='countdown'){raceState.status='running';raceState.startedAt=Date.now();broadcastRace();}},5000);return;
   }
   if(msg.type==='race-progress'&&raceState&&raceState.status==='running'){const p=raceState.participants.find(p=>p.id===id);if(p&&!p.bot)p.lap=Math.max(p.lap,Math.min(3,Number(msg.lap)||0));broadcastRace();return;}
