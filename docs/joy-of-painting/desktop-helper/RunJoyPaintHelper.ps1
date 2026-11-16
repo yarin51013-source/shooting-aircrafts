@@ -77,7 +77,7 @@ try {
         $reader=[IO.StreamReader]::new($Context.Request.InputStream)
         $body=$reader.ReadToEnd(); $reader.Dispose()
         if ($body.Length -gt 4096) { Send-Json $Context 413 @{error="Request too large"}; continue }
-        $data=@{}; if ($body) { $data=ConvertFrom-Json -AsHashtable $body }
+        $data=@{}; if ($body) { $data=ConvertFrom-Json $body }
         if ($Path -eq "/arm") {
           $script:Label=[string]$data.label; $script:Armed=$true; $script:LastClick=$null
           Send-Json $Context 200 @{ok=$true}; continue
