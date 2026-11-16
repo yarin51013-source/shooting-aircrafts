@@ -22,9 +22,9 @@ $script:Label = "target"
 $script:PreviousLeft = $false
 $script:LastClick = $null
 function Send-Json($Context, [int]$Status, $Data) {
-  $bytes = [Text.Encoding]::UTF8.GetBytes(($Data | ConvertTo-Json -Compress -Depth 5))
+  # A 204 preflight response must not contain a body. For all other
+  # responses, set the exact byte length before writing to HttpListener.
   $Context.Response.StatusCode = $Status
-  $Context.Response.ContentType = "application/json; charset=utf-8"
   $Context.Response.Headers["Cache-Control"] = "no-store"
   if ($Context.Request.Headers["Origin"] -eq $Origin) {
     $Context.Response.Headers["Access-Control-Allow-Origin"] = $Origin
@@ -35,8 +35,20 @@ function Send-Json($Context, [int]$Status, $Data) {
       $Context.Response.Headers["Access-Control-Allow-Private-Network"] = "true"
     }
   }
-  $Context.Response.OutputStream.Write($bytes, 0, $bytes.Length)
-  $Context.Response.Close()
+  try {
+    if ($Status -eq 204) {
+      $Context.Response.ContentLength64 = 0
+    } else {
+      $bytes = [Text.Encoding]::UTF8.GetBytes(($Data | ConvertTo-Json -Compress -Depth 5))
+      $Context.Response.ContentType = "application/json; charset=utf-8"
+      $Context.Response.ContentLength64 = $bytes.Length
+      if ($bytes.Length -gt 0) {
+        $Context.Response.OutputStream.Write($bytes, 0, $bytes.Length)
+      }
+    }
+  } finally {
+    $Context.Response.Close()
+  }
 }
 function Get-Click {
   $down = ([JoyPaintWin32]::GetAsyncKeyState(1) -band 0x8000) -ne 0
