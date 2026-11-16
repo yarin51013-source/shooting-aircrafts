@@ -51,14 +51,16 @@ function Send-Json($Context, [int]$Status, $Data) {
   }
 }
 function Get-Click {
-  $down = ([JoyPaintWin32]::GetAsyncKeyState(1) -band 0x8000) -ne 0
-  if ($script:Armed -and $down -and -not $script:PreviousLeft) {
+  # Read the "pressed since last check" bit, not only the current held
+  # state. A normal quick Minecraft click can begin and end between the
+  # browser's 150 ms polling requests.
+  $pressed = ([JoyPaintWin32]::GetAsyncKeyState(1) -band 1) -ne 0
+  if ($script:Armed -and $pressed) {
     $p = New-Object JoyPaintWin32+POINT
     [void][JoyPaintWin32]::GetCursorPos([ref]$p)
     $script:LastClick = @{ x=$p.X; y=$p.Y; label=$script:Label }
     $script:Armed = $false
   }
-  $script:PreviousLeft = $down
 }
 Write-Host "Joy of Painting helper running at http://127.0.0.1:8765"
 Write-Host "Only requests from the official Joy of Painting page are accepted."
