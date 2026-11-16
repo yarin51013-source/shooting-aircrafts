@@ -3,8 +3,48 @@
 <style>
 :root{color-scheme:dark;--bg:#11151c;--panel:#1b2330;--line:#354355;--text:#f3f5f8;--muted:#a8b4c4;--accent:#69d5a1}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#26354a 0,#11151c 55%);color:var(--text);font:15px/1.45 system-ui,Segoe UI,Arial,sans-serif}header{max-width:1180px;margin:auto;padding:26px 20px 12px}h1{margin:0;font-size:clamp(26px,4vw,40px)}header p{color:var(--muted);margin:6px 0 0}.wrap{max-width:1180px;margin:auto;padding:14px 20px 40px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr);gap:16px}.card{background:linear-gradient(160deg,#202b3a,#171e29);border:1px solid var(--line);border-radius:18px;padding:17px;box-shadow:0 12px 32px #0003}.card h2{font-size:18px;margin:0 0 12px}.muted{color:var(--muted)}button{background:var(--accent);color:#102019;border:0;border-radius:10px;padding:10px 14px;font-weight:750;cursor:pointer}button.secondary{background:#344458;color:var(--text)}button:disabled{opacity:.4;cursor:not-allowed}input,select{accent-color:var(--accent)}.toolbar{display:flex;flex-wrap:wrap;gap:9px;align-items:center}.preview{display:flex;align-items:center;justify-content:center;min-height:340px;background:#0b1017;border:1px dashed #53647b;border-radius:14px;padding:12px;overflow:auto}canvas{image-rendering:pixelated;max-width:100%;max-height:520px}.gridinfo{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0;color:var(--muted);font-size:13px}.palette{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.swatch{display:flex;align-items:center;gap:7px;background:#111923;border:1px solid #344355;padding:6px;border-radius:9px;font-size:12px}.swatch input{width:28px;height:26px;padding:0;border:0;background:none}.swatch span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.instruction{background:#111923;border:1px solid #35465b;border-radius:14px;padding:16px;margin:10px 0}.big{font-size:26px;font-weight:850;color:var(--accent)}.chip{display:inline-block;width:30px;height:30px;border-radius:8px;border:2px solid #fff5;vertical-align:middle;margin-right:8px}.progress{height:9px;background:#354355;border-radius:20px;overflow:hidden}.progress>div{height:100%;background:var(--accent);width:0}.steps{display:flex;justify-content:space-between;gap:8px;align-items:center}.small{font-size:12px;color:var(--muted)}.notice{background:#332c1e;border:1px solid #665536;color:#f5d99a;padding:10px 12px;border-radius:11px;font-size:13px;margin-top:10px}.hidden{display:none!important}@media(max-width:850px){.wrap{grid-template-columns:1fr}.preview{min-height:260px}.palette{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Premium visual refresh */
+:root{color-scheme:dark;--bg:#090d14;--panel:#141d2b;--line:#29384d;--text:#f4f7fb;--muted:#a5b2c5;--accent:#83e6b6;--accent2:#8ab8ff}
+body{background:radial-gradient(ellipse at 15% -10%,#294b53 0,transparent 38%),radial-gradient(ellipse at 95% 0%,#29365d 0,transparent 34%),linear-gradient(160deg,#090d14,#101827 55%,#0b111b);font-size:15px;line-height:1.55;min-height:100vh}
+header{max-width:1320px;padding:42px 24px 20px}
+header:before{content:"CREATIVE TOOLS  /  MINECRAFT";display:inline-flex;align-items:center;gap:8px;color:var(--accent);font-size:11px;font-weight:850;letter-spacing:2px;margin-bottom:12px}
+h1{font-size:clamp(32px,5vw,52px);letter-spacing:-1.8px;line-height:1.08;background:linear-gradient(100deg,#fff 20%,#b9f6d8 75%,#9dc4ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+header p{font-size:16px;max-width:720px;margin-top:12px}
+.wrap{max-width:1320px;padding:16px 24px 64px;gap:20px;grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr)}
+.card{background:linear-gradient(145deg,rgba(26,39,57,.96),rgba(15,23,36,.96));border:1px solid rgba(139,166,201,.2);border-radius:22px;padding:22px;box-shadow:0 20px 60px #0005,inset 0 1px #ffffff0b;backdrop-filter:blur(14px)}
+.card h2{font-size:18px;letter-spacing:-.25px;margin-bottom:15px}
+.card h2:not(:first-child){padding-top:4px}
+button{background:linear-gradient(135deg,#a3f4c9,#6fd7aa);border:1px solid #c0ffe0;color:#0c2419;border-radius:12px;padding:11px 16px;box-shadow:0 5px 16px #4ed69b22;transition:transform .16s,filter .16s,box-shadow .16s}
+button:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.06);box-shadow:0 9px 22px #4ed69b30}
+button.secondary{background:linear-gradient(135deg,#34465f,#26364c);border:1px solid #50647f;color:#f4f7fb;box-shadow:none}
+button.secondary:hover:not(:disabled){background:linear-gradient(135deg,#415873,#30445e)}
+input,select{accent-color:var(--accent)}
+input[type=file],select{background:#0e1724;color:var(--text);border:1px solid #3a4d66;border-radius:10px;padding:8px}
+label{color:#dce6f2}
+.toolbar{gap:10px}
+.preview{min-height:390px;background:radial-gradient(circle at center,#1a2a3b,#080d15 75%);border:1px solid #34465d;border-radius:18px;box-shadow:inset 0 0 40px #0005}
+canvas{border-radius:5px;filter:drop-shadow(0 10px 20px #0008)}
+.gridinfo{font-size:13px;margin:13px 2px}
+.gridinfo span{background:#101a28;border:1px solid #2c3e54;border-radius:999px;padding:5px 10px}
+.notice{background:linear-gradient(110deg,#302a1e,#28251e);border:1px solid #78633b;color:#f6dda4;border-radius:13px;padding:13px 15px}
+.palette{gap:9px}
+.swatch{background:#0e1724;border:1px solid #30435b;border-radius:12px;padding:8px;transition:border-color .15s,transform .15s}
+.swatch:hover{border-color:#83e6b6;transform:translateY(-1px)}
+.swatch input{width:34px;height:30px;cursor:pointer}
+.instruction{background:linear-gradient(145deg,#0c1724,#111f30);border:1px solid #38506b;border-radius:18px;padding:20px;min-height:210px;box-shadow:inset 0 1px #ffffff0a}
+.big{font-size:clamp(30px,4vw,38px);letter-spacing:-1px;color:var(--accent)}
+.chip{width:38px;height:38px;border-radius:11px;box-shadow:0 3px 12px #0006}
+.progress{height:11px;background:#27364a;border:1px solid #3b4d64}
+.progress>div{background:linear-gradient(90deg,#69d9a7,#9deac5,#8ab8ff);border-radius:20px;transition:width .2s}
+.steps{font-size:14px}
+.small{line-height:1.5}
+ol.muted li{padding:4px 0 4px 3px}
+.hidden{display:none!important}
+@media(max-width:850px){header{padding:30px 16px 10px}.wrap{padding:12px 16px 40px;grid-template-columns:1fr}.card{padding:18px}.preview{min-height:270px}}
+@media(max-width:480px){.toolbar{align-items:stretch}.toolbar button{flex:1}.palette{grid-template-columns:repeat(2,minmax(0,1fr))}.instruction{padding:16px}}
 </style></head><body>
-<header><h1>🎨 Joy of Painting Guide</h1><p>Turn a picture into an exact, one-pixel-at-a-time painting checklist for Minecraft.</p></header>
+<header><h1>🎨 Joy of Painting Guide</h1><p>Turn any picture into a detailed Minecraft painting plan — with a crisp pixel preview, color matching, and clear step-by-step coordinates.</p></header>
 <main class="wrap"><section class="card">
 <h2>1. Choose a picture</h2><div class="toolbar"><input id="file" type="file" accept="image/*"><label>Canvas width <select id="w"><option>16</option><option selected>32</option><option>48</option><option>64</option><option>96</option><option>128</option><option>160</option></select></label><label>Canvas height <select id="h"><option>16</option><option selected>32</option><option>48</option><option>64</option><option>96</option><option>128</option><option>160</option></select></label><label><input id="dither" type="checkbox" checked> More color detail (dithering)</label><button id="convert" class="secondary" disabled>Make guide</button></div>
 <div class="preview" style="margin-top:12px"><canvas id="view" width="320" height="320"></canvas><div id="empty" class="muted">Upload a picture to see its pixel preview.</div></div><div class="gridinfo"><span id="dimensions">No image loaded</span><span id="count"></span><span id="colorsUsed"></span></div>
