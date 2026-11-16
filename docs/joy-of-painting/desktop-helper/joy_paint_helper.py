@@ -8,6 +8,13 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": ["https://joy-of-painting-guide.onrender.com"]}})
 pyautogui.FAILSAFE = True
 pyautogui.PAUSE = 0.015
+
+@app.after_request
+def allow_local_network(response):
+    # Recent Chromium versions send this header for HTTPS-to-loopback requests.
+    if request.headers.get("Access-Control-Request-Private-Network") == "true":
+        response.headers["Access-Control-Allow-Private-Network"] = "true"
+    return response
 state = {"armed": False, "click": None, "label": ""}
 lock = Lock()
 
