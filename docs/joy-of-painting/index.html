@@ -80,6 +80,7 @@ function makePixels(){
   const prepared=document.createElement('canvas');prepared.width=sw;prepared.height=sh;
   const prep=prepared.getContext('2d',{willReadFrequently:true});
   prep.imageSmoothingEnabled=true;prep.imageSmoothingQuality='high';prep.drawImage(source,0,0,sw,sh);
+  const clamp=v=>Math.max(0,Math.min(255,v));
   const detail=+$('sharp').value/100;
   if(detail>0.02){
     const im=prep.getImageData(0,0,sw,sh),srcData=im.data,copy=new Uint8ClampedArray(srcData);
@@ -107,7 +108,6 @@ function makePixels(){
   const raw=ctx.getImageData(0,0,w,h).data;
   const original=new Float32Array(raw.length);
   for(let i=0;i<raw.length;i++)original[i]=raw[i];
-  const clamp=v=>Math.max(0,Math.min(255,v));
   const sharp=+$('sharp').value/100*1.35;
   const contrast=1+(+$('contrast').value)/100;
   const saturation=1+(+$('saturation').value)/100;
