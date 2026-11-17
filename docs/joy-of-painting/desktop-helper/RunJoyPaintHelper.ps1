@@ -161,7 +161,7 @@ try {
       if ($Context.Request.HttpMethod -eq "POST") {
         $reader=[IO.StreamReader]::new($Context.Request.InputStream)
         $body=$reader.ReadToEnd(); $reader.Dispose()
-        if ($body.Length -gt 4096) { Send-Json $Context 413 @{error="Request too large"}; continue }
+        if ($body.Length -gt 20000000) { Send-Json $Context 413 @{error="Painting plan is too large. Use a smaller canvas."}; continue }
         $data=@{}; if ($body) { $data=ConvertFrom-Json $body }
         if ($Path -eq "/arm") {
           $script:Label=[string]$data.label; $script:Armed=$true; $script:AwaitMouseRelease=$true; $script:LastClick=$null
@@ -177,6 +177,37 @@ try {
             Send-Json $Context 409 @{error="Could not focus Minecraft. Open the game window and try again."}; continue
           }
           Send-Json $Context 200 @{ok=$true}; continue
+        }
+        if ($Path -eq "/paint") {
+          if (-not (Find-MinecraftWindow)) {
+            Send-Json $Context 409 @{error="Minecraft Java window was not found. Open the game and its painting screen, then try again."}; continue
+          }
+          if (-not [JoyPaintWin32]::FocusMinecraft($script:MinecraftHwnd)) {
+            Send-Json $Context 409 @{error="Could not focus Minecraft. Open the game window and try again."}; continue
+          }
+          $clicks = @($data.clicks)
+          $delay = [Math]::Max(0, [Math]::Min(500, [int]$data.delay))
+          $painted = 0
+          foreach ($point in $clicks) {
+            # Emergency stop: press Escape or move the mouse to the screen's top-left corner.
+            if (([JoyPaintWin32]::GetAsyncKeyState(0x1B) -band 0x8000) -ne 0) { break }
+            $cursor = New-Object JoyPaintWin32+POINT
+            [void][JoyPaintWin32]::GetCursorPos([ref]$cursor)
+            if ($cursor.X -le 1 -and $cursor.Y -le 1) { break }
+            if ($null -eq $point -or $point.Count -lt 2) { continue }
+            $x = [int]$point[0]; $y = [int]$point[1]
+            $screenW = [JoyPaintWin32]::GetSystemMetrics(0); $screenH = [JoyPaintWin32]::GetSystemMetrics(1)
+            if ($x -lt 0 -or $y -lt 0 -or $x -ge $screenW -or $y -ge $screenH) {
+              Send-Json $Context 400 @{error="Painting plan contains coordinates outside the screen";painted=$painted}; continue
+            }
+            if (-not [JoyPaintWin32]::ClickAt($x, $y, $screenW, $screenH)) {
+              Send-Json $Context 409 @{error="Windows did not accept a mouse click";painted=$painted}; continue
+            }
+            $painted++
+            if ($delay -gt 0) { Start-Sleep -Milliseconds $delay }
+          }
+          Send-Json $Context 200 @{ok=$true;painted=$painted;total=$clicks.Count;stopped=($painted -lt $clicks.Count)}
+          continue
         }
         if ($Path -eq "/click") {
           $x=[int]$data.x; $y=[int]$data.y
