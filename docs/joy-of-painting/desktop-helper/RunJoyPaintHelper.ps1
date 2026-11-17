@@ -3,7 +3,7 @@
 $ErrorActionPreference = "Stop"
 $Origin = "https://joy-of-painting-guide.onrender.com"
 $Listener = [System.Net.HttpListener]::new()
-$Listener.Prefixes.Add("http://127.0.0.1:8765/")
+$Listener.Prefixes.Add("http://127.0.0.1:8766/")
 $Listener.Start()
 Add-Type @"
 using System;
@@ -133,7 +133,7 @@ function Get-Click {
     $script:Armed = $false
   }
 }
-Write-Host "Joy of Painting helper running at http://127.0.0.1:8765"
+Write-Host "Joy of Painting helper running at http://127.0.0.1:8766"
 Write-Host "Only requests from the official Joy of Painting page are accepted."
 Write-Host "Keep this window open. Press Ctrl+C to stop."
 try {
@@ -142,7 +142,7 @@ try {
     try {
       $OriginHeader = $Context.Request.Headers["Origin"]
       $HostHeader = $Context.Request.Headers["Host"]
-      if ($OriginHeader -ne $Origin -or $HostHeader -notin @("127.0.0.1:8765","localhost:8765")) {
+      if ($OriginHeader -ne $Origin -or $HostHeader -notin @("127.0.0.1:8766","localhost:8766")) {
         Send-Json $Context 403 @{ error="Origin not allowed" }; continue
       }
       if ($Context.Request.HttpMethod -eq "OPTIONS") {
