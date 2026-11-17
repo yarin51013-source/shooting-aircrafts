@@ -22,6 +22,14 @@ public static class JoyPaintWin32 {
   [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
   [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] public static extern bool BringWindowToTop(IntPtr hWnd);
+  [DllImport("user32.dll")] public static extern IntPtr SetActiveWindow(IntPtr hWnd);
+  [DllImport("user32.dll")] public static extern IntPtr SetFocus(IntPtr hWnd);
+  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+  [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
+  [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+  [DllImport("user32.dll")] public static extern bool AllowSetForegroundWindow(int dwProcessId);
   [DllImport("user32.dll")] public static extern int GetSystemMetrics(int nIndex);
 }
 "@
@@ -32,23 +40,49 @@ $script:AwaitMouseRelease = $false
 $script:LastClick = $null
 $script:MinecraftHwnd = [IntPtr]::Zero
 function Focus-Minecraft {
-  if ($script:MinecraftHwnd -ne [IntPtr]::Zero) { return $true }
+  # Re-detect the game window every time: Java launchers can create several
+  # javaw processes, and a cached handle can point at the wrong window.
+  $script:MinecraftHwnd = [IntPtr]::Zero
   $candidates = @("javaw", "Minecraft.Windows", "Minecraft")
   foreach ($name in $candidates) {
     foreach ($proc in [Diagnostics.Process]::GetProcessesByName($name)) {
       try {
         $proc.Refresh()
-        if ($proc.MainWindowHandle -ne [IntPtr]::Zero) {
+        $title = [string]$proc.MainWindowTitle
+        if ($proc.MainWindowHandle -ne [IntPtr]::Zero -and
+            ($name -ne "javaw" -or $title -match "Minecraft")) {
           $script:MinecraftHwnd = $proc.MainWindowHandle
-          [void][JoyPaintWin32]::ShowWindow($script:MinecraftHwnd, 9)
-          [void][JoyPaintWin32]::SetForegroundWindow($script:MinecraftHwnd)
-          Start-Sleep -Milliseconds 250
-          return $true
+          break
         }
       } catch {}
     }
+    if ($script:MinecraftHwnd -ne [IntPtr]::Zero) { break }
   }
-  return $false
+  if ($script:MinecraftHwnd -eq [IntPtr]::Zero) { return $false }
+
+  # Temporarily attach the browser/helper foreground input thread to the
+  # Minecraft thread so Windows reliably activates the game before SendInput.
+  $fg = [JoyPaintWin32]::GetForegroundWindow()
+  [uint32]$fgPid = 0
+  [uint32]$targetPid = 0
+  $fgThread = [JoyPaintWin32]::GetWindowThreadProcessId($fg, [ref]$fgPid)
+  $targetThread = [JoyPaintWin32]::GetWindowThreadProcessId($script:MinecraftHwnd, [ref]$targetPid)
+  $currentThread = [JoyPaintWin32]::GetCurrentThreadId()
+  $attached = $false
+  try {
+    if ($fgThread -ne 0 -and $targetThread -ne 0 -and $fgThread -ne $targetThread) {
+      $attached = [JoyPaintWin32]::AttachThreadInput($fgThread, $targetThread, $true)
+    }
+    [void][JoyPaintWin32]::ShowWindow($script:MinecraftHwnd, 9)
+    [void][JoyPaintWin32]::BringWindowToTop($script:MinecraftHwnd)
+    [void][JoyPaintWin32]::SetForegroundWindow($script:MinecraftHwnd)
+    [void][JoyPaintWin32]::SetActiveWindow($script:MinecraftHwnd)
+    [void][JoyPaintWin32]::SetFocus($script:MinecraftHwnd)
+    Start-Sleep -Milliseconds 180
+  } finally {
+    if ($attached) { [void][JoyPaintWin32]::AttachThreadInput($fgThread, $targetThread, $false) }
+  }
+  return ([JoyPaintWin32]::GetForegroundWindow() -eq $script:MinecraftHwnd)
 }
 function Send-Json($Context, [int]$Status, $Data) {
   # A 204 preflight response must not contain a body. For all other
