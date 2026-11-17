@@ -73,7 +73,7 @@ function Focus-Minecraft {
     if ($fgThread -ne 0 -and $targetThread -ne 0 -and $fgThread -ne $targetThread) {
       $attached = [JoyPaintWin32]::AttachThreadInput($fgThread, $targetThread, $true)
     }
-    [void][JoyPaintWin32]::ShowWindow($script:MinecraftHwnd, 9)
+    [void][JoyPaintWin32]::ShowWindow($script:MinecraftHwnd, 3)
     [void][JoyPaintWin32]::BringWindowToTop($script:MinecraftHwnd)
     [void][JoyPaintWin32]::SetForegroundWindow($script:MinecraftHwnd)
     [void][JoyPaintWin32]::SetActiveWindow($script:MinecraftHwnd)
