@@ -221,8 +221,16 @@ try {
         if ($body.Length -gt 20000000) { Send-Json $Context 413 @{error="Painting plan is too large. Use a smaller canvas."}; continue }
         $data=@{}; if ($body) { $data=ConvertFrom-Json $body }
         if ($Path -eq "/arm") {
+          # Move focus to Minecraft BEFORE arming the global mouse hook. This makes
+          # the calibration sequence deterministic: browser button -> Minecraft
+          # maximized/focused -> next click captured at its physical screen position.
+          if (-not (Find-MinecraftWindow)) {
+            Send-Json $Context 409 @{error="Minecraft Java window was not found. Open Minecraft and its painting screen, then try again."}; continue
+          }
+          if (-not [JoyPaintWin32]::FocusMinecraft($script:MinecraftHwnd)) {
+            Send-Json $Context 409 @{error="Could not focus Minecraft. Try switching to the Minecraft window manually, then calibrate again."}; continue
+          }
           $script:Label=[string]$data.label; $script:LastClick=$null
-          # Ignore the calibration-button press, then capture the next physical click anywhere.
           [JoyPaintWin32]::ArmCapture()
           Send-Json $Context 200 @{ok=$true}; continue
         }
