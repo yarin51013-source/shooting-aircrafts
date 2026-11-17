@@ -188,6 +188,7 @@ try {
           $clicks = @($data.clicks)
           $delay = [Math]::Max(0, [Math]::Min(500, [int]$data.delay))
           $painted = 0
+          $paintError = $null
           foreach ($point in $clicks) {
             # Emergency stop: press Escape or move the mouse to the screen's top-left corner.
             if (([JoyPaintWin32]::GetAsyncKeyState(0x1B) -band 0x8000) -ne 0) { break }
@@ -198,13 +199,16 @@ try {
             $x = [int]$point[0]; $y = [int]$point[1]
             $screenW = [JoyPaintWin32]::GetSystemMetrics(0); $screenH = [JoyPaintWin32]::GetSystemMetrics(1)
             if ($x -lt 0 -or $y -lt 0 -or $x -ge $screenW -or $y -ge $screenH) {
-              Send-Json $Context 400 @{error="Painting plan contains coordinates outside the screen";painted=$painted}; continue
+              $paintError = "Painting plan contains coordinates outside the screen"; break
             }
             if (-not [JoyPaintWin32]::ClickAt($x, $y, $screenW, $screenH)) {
-              Send-Json $Context 409 @{error="Windows did not accept a mouse click";painted=$painted}; continue
+              $paintError = "Windows did not accept a mouse click"; break
             }
             $painted++
             if ($delay -gt 0) { Start-Sleep -Milliseconds $delay }
+          }
+          if ($paintError) {
+            Send-Json $Context 409 @{error=$paintError;painted=$painted;total=$clicks.Count}; continue
           }
           Send-Json $Context 200 @{ok=$true;painted=$painted;total=$clicks.Count;stopped=($painted -lt $clicks.Count)}
           continue
