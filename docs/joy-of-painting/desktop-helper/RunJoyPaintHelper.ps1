@@ -20,6 +20,7 @@ public static class JoyPaintWin32 {
 $script:Armed = $false
 $script:Label = "target"
 $script:PreviousLeft = $false
+$script:AwaitMouseRelease = $false
 $script:LastClick = $null
 function Send-Json($Context, [int]$Status, $Data) {
   # A 204 preflight response must not contain a body. For all other
@@ -51,10 +52,15 @@ function Send-Json($Context, [int]$Status, $Data) {
   }
 }
 function Get-Click {
-  # Read the "pressed since last check" bit, not only the current held
-  # state. A normal quick Minecraft click can begin and end between the
-  # browser's 150 ms polling requests.
-  $pressed = ([JoyPaintWin32]::GetAsyncKeyState(1) -band 1) -ne 0
+  # Ignore the click that pressed the website calibration button. First wait
+  # until the left mouse button is released, then accept a fresh Minecraft click.
+  $state = [JoyPaintWin32]::GetAsyncKeyState(1)
+  if ($script:Armed -and $script:AwaitMouseRelease) {
+    if (($state -band 0x8000) -eq 0) { $script:AwaitMouseRelease = $false }
+    return
+  }
+  # The low bit catches quick clicks between the browser's polling requests.
+  $pressed = ($state -band 1) -ne 0
   if ($script:Armed -and $pressed) {
     $p = New-Object JoyPaintWin32+POINT
     [void][JoyPaintWin32]::GetCursorPos([ref]$p)
@@ -93,7 +99,9 @@ try {
         if ($body.Length -gt 4096) { Send-Json $Context 413 @{error="Request too large"}; continue }
         $data=@{}; if ($body) { $data=ConvertFrom-Json $body }
         if ($Path -eq "/arm") {
-          $script:Label=[string]$data.label; $script:Armed=$true; $script:LastClick=$null
+          $script:Label=[string]$data.label; $script:Armed=$true; $script:AwaitMouseRelease=$true; $script:LastClick=$null
+          # Drain any stale click edge from the website button itself.
+          [void][JoyPaintWin32]::GetAsyncKeyState(1)
           Send-Json $Context 200 @{ok=$true}; continue
         }
         if ($Path -eq "/click") {
