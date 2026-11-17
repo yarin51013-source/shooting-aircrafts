@@ -167,6 +167,7 @@ function Get-Click {
   if ([JoyPaintWin32]::TryTakeClick([ref]$p)) {
     $script:LastClick = @{ x=$p.X; y=$p.Y; label=$script:Label }
   }
+}
 
 Write-Host "Joy of Painting helper running at http://127.0.0.1:8766"
 Write-Host "Only requests from the official Joy of Painting page are accepted."
