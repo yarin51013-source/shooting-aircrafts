@@ -20,6 +20,8 @@ public static class JoyPaintWin32 {
   }
   [DllImport("user32.dll", SetLastError=true)] public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
   [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+  [DllImport("user32.dll")] public static extern bool ScreenToClient(IntPtr hWnd, ref POINT p);
+  [DllImport("user32.dll", SetLastError=true)] public static extern bool PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
   [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
   [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
@@ -39,50 +41,19 @@ $script:PreviousLeft = $false
 $script:AwaitMouseRelease = $false
 $script:LastClick = $null
 $script:MinecraftHwnd = [IntPtr]::Zero
-function Focus-Minecraft {
-  # Re-detect the game window every time: Java launchers can create several
-  # javaw processes, and a cached handle can point at the wrong window.
+function Find-MinecraftWindow {
+  # Find the Java Edition game window without changing focus or window size.
   $script:MinecraftHwnd = [IntPtr]::Zero
-  $candidates = @("javaw", "Minecraft.Windows", "Minecraft")
-  foreach ($name in $candidates) {
-    foreach ($proc in [Diagnostics.Process]::GetProcessesByName($name)) {
-      try {
-        $proc.Refresh()
-        $title = [string]$proc.MainWindowTitle
-        if ($proc.MainWindowHandle -ne [IntPtr]::Zero -and
-            ($name -ne "javaw" -or $title -match "Minecraft")) {
-          $script:MinecraftHwnd = $proc.MainWindowHandle
-          break
-        }
-      } catch {}
-    }
-    if ($script:MinecraftHwnd -ne [IntPtr]::Zero) { break }
+  foreach ($proc in [Diagnostics.Process]::GetProcessesByName("javaw")) {
+    try {
+      $proc.Refresh()
+      if ($proc.MainWindowHandle -ne [IntPtr]::Zero -and [string]$proc.MainWindowTitle -match "Minecraft") {
+        $script:MinecraftHwnd = $proc.MainWindowHandle
+        return $true
+      }
+    } catch {}
   }
-  if ($script:MinecraftHwnd -eq [IntPtr]::Zero) { return $false }
-
-  # Temporarily attach the browser/helper foreground input thread to the
-  # Minecraft thread so Windows reliably activates the game before SendInput.
-  $fg = [JoyPaintWin32]::GetForegroundWindow()
-  [uint32]$fgPid = 0
-  [uint32]$targetPid = 0
-  $fgThread = [JoyPaintWin32]::GetWindowThreadProcessId($fg, [ref]$fgPid)
-  $targetThread = [JoyPaintWin32]::GetWindowThreadProcessId($script:MinecraftHwnd, [ref]$targetPid)
-  $currentThread = [JoyPaintWin32]::GetCurrentThreadId()
-  $attached = $false
-  try {
-    if ($fgThread -ne 0 -and $targetThread -ne 0 -and $fgThread -ne $targetThread) {
-      $attached = [JoyPaintWin32]::AttachThreadInput($fgThread, $targetThread, $true)
-    }
-    [void][JoyPaintWin32]::ShowWindow($script:MinecraftHwnd, 3)
-    [void][JoyPaintWin32]::BringWindowToTop($script:MinecraftHwnd)
-    [void][JoyPaintWin32]::SetForegroundWindow($script:MinecraftHwnd)
-    [void][JoyPaintWin32]::SetActiveWindow($script:MinecraftHwnd)
-    [void][JoyPaintWin32]::SetFocus($script:MinecraftHwnd)
-    Start-Sleep -Milliseconds 180
-  } finally {
-    if ($attached) { [void][JoyPaintWin32]::AttachThreadInput($fgThread, $targetThread, $false) }
-  }
-  return ([JoyPaintWin32]::GetForegroundWindow() -eq $script:MinecraftHwnd)
+  return $false
 }
 function Send-Json($Context, [int]$Status, $Data) {
   # A 204 preflight response must not contain a body. For all other
@@ -172,22 +143,24 @@ try {
           if ($x -lt 0 -or $y -lt 0 -or $x -ge $w -or $y -ge $h) { Send-Json $Context 400 @{error="Coordinates outside screen"}; continue }
           $p=New-Object JoyPaintWin32+POINT; [void][JoyPaintWin32]::GetCursorPos([ref]$p)
           if ($p.X -le 1 -and $p.Y -le 1) { Send-Json $Context 403 @{error="Emergency stop is active"}; continue }
-          if (-not (Focus-Minecraft)) {
-            Send-Json $Context 409 @{error="Minecraft was not found. Open Minecraft and its canvas, then try again."}; continue
+          if (-not (Find-MinecraftWindow)) {
+            Send-Json $Context 409 @{error="Minecraft Java window was not found. Open the game and its painting screen, then try again."}; continue
           }
-          [void][JoyPaintWin32]::SetForegroundWindow($script:MinecraftHwnd)
-          [void][JoyPaintWin32]::SetCursorPos($x,$y)
-          Start-Sleep -Milliseconds 35
-          $inputs = New-Object 'JoyPaintWin32+INPUT[]' 2
-          $inputs[0].type = 0
-          $inputs[0].mi.dwFlags = 0x0002
-          $inputs[0].mi.dwExtraInfo = [UIntPtr]::Zero
-          $inputs[1].type = 0
-          $inputs[1].mi.dwFlags = 0x0004
-          $inputs[1].mi.dwExtraInfo = [UIntPtr]::Zero
-          $sent = [JoyPaintWin32]::SendInput(2, $inputs, [Runtime.InteropServices.Marshal]::SizeOf([type][JoyPaintWin32+INPUT]))
-          if ($sent -ne 2) {
-            Send-Json $Context 500 @{error="Windows did not accept the mouse click. Click the Minecraft window once, then try again."}; continue
+          # Send mouse messages directly to Minecraft's client area. This avoids
+          # stealing focus, moving the real cursor, or repeatedly maximizing the game.
+          $point = New-Object JoyPaintWin32+POINT
+          $point.X = $x; $point.Y = $y
+          if (-not [JoyPaintWin32]::ScreenToClient($script:MinecraftHwnd, [ref]$point)) {
+            Send-Json $Context 500 @{error="Could not map the canvas position into the Minecraft window."}; continue
+          }
+          $packed = (($point.Y -band 0xffff) -shl 16) -bor ($point.X -band 0xffff)
+          $lParam = [IntPtr]::new([long]$packed)
+          $ok1 = [JoyPaintWin32]::PostMessage($script:MinecraftHwnd, 0x0200, [IntPtr]::Zero, $lParam)
+          $ok2 = [JoyPaintWin32]::PostMessage($script:MinecraftHwnd, 0x0201, [IntPtr]::new(1), $lParam)
+          Start-Sleep -Milliseconds 25
+          $ok3 = [JoyPaintWin32]::PostMessage($script:MinecraftHwnd, 0x0202, [IntPtr]::Zero, $lParam)
+          if (-not ($ok1 -and $ok2 -and $ok3)) {
+            Send-Json $Context 500 @{error="Minecraft did not accept the click message."}; continue
           }
           Send-Json $Context 200 @{ok=$true}; continue
         }
