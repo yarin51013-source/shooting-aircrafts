@@ -171,7 +171,7 @@ drawPalette();
 const helper='http://127.0.0.1:8765';
 let helperOK=false, canvasA=null, canvasB=null, swatchPoints={}, painting=false;
 async function helperGet(path){const r=await fetch(helper+path,{cache:'no-store'});if(!r.ok)throw new Error('Helper request failed');return r.json()}
-async function helperPost(path,data){const r=await fetch(helper+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(!r.ok)throw new Error('Helper request failed');return r.json()}
+async function helperPost(path,data){const r=await fetch(helper+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});let body={};try{body=await r.json()}catch(e){}if(!r.ok)throw new Error(body.error||('Helper request failed ('+r.status+')'));return body}
 async function capturePoint(label){await helperPost('/arm',{label});$('autoProgress').textContent='Click the '+label+' in Minecraft now...';return new Promise((resolve,reject)=>{let tries=0;const timer=setInterval(async()=>{try{const r=await helperGet('/last');if(r.click){clearInterval(timer);resolve({x:r.click.x,y:r.click.y})}else if(++tries>240){clearInterval(timer);reject(new Error('No click detected. Try again.'))}}catch(e){clearInterval(timer);reject(e)}},150)})}
 async function checkHelper(){try{await helperGet('/status');helperOK=true;$('helperStatus').textContent='Connected ✓';$('calTop').disabled=false;$('helperCheck').textContent='Connected';refreshAutoPalette()}catch(e){helperOK=false;$('helperStatus').textContent='Not connected — double-click the downloaded launcher';$('calTop').disabled=true}}
 $('helperCheck').onclick=checkHelper;
