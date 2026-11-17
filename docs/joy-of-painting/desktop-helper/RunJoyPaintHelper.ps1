@@ -44,7 +44,7 @@ public static class JoyPaintWin32 {
     bool attachedForeground = foregroundThread != 0 && AttachThreadInput(currentThread, foregroundThread, true);
     bool attachedTarget = targetThread != 0 && AttachThreadInput(currentThread, targetThread, true);
     try {
-      ShowWindow(hwnd, 9);
+      ShowWindow(hwnd, 3); // Maximize Minecraft before calibration and painting.
       BringWindowToTop(hwnd);
       SetForegroundWindow(hwnd);
       SetActiveWindow(hwnd);
