@@ -10,6 +10,47 @@ public static class JoyPaintWin32 {
   [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);
   [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
   [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int vKey);
+  private static volatile bool captureArmed = false;
+  private static volatile bool waitForRelease = false;
+  private static bool clickReady = false;
+  private static POINT capturedPoint;
+  private static readonly object captureLock = new object();
+  static JoyPaintWin32() {
+    System.Threading.Thread watcher = new System.Threading.Thread(() => {
+      while (true) {
+        if (captureArmed) {
+          bool down = (GetAsyncKeyState(1) & 0x8000) != 0;
+          if (waitForRelease) {
+            if (!down) waitForRelease = false;
+          } else if (down) {
+            POINT p;
+            if (GetCursorPos(out p)) {
+              lock (captureLock) { capturedPoint = p; clickReady = true; }
+            }
+            captureArmed = false;
+          }
+        }
+        System.Threading.Thread.Sleep(2);
+      }
+    });
+    watcher.IsBackground = true;
+    watcher.Name = "JoyPaint global mouse watcher";
+    watcher.Start();
+  }
+  public static void ArmCapture() {
+    lock (captureLock) { clickReady = false; }
+    waitForRelease = true;
+    captureArmed = true;
+  }
+  public static bool TryTakeClick(out POINT p) {
+    lock (captureLock) {
+      p = capturedPoint;
+      if (!clickReady) return false;
+      clickReady = false;
+      return true;
+    }
+  }
+  public static void CancelCapture() { captureArmed = false; }
   [StructLayout(LayoutKind.Sequential)] public struct MOUSEINPUT {
     public int dx; public int dy; public uint mouseData; public uint dwFlags; public uint time; public UIntPtr dwExtraInfo;
   }
@@ -120,22 +161,13 @@ function Send-Json($Context, [int]$Status, $Data) {
   }
 }
 function Get-Click {
-  # Ignore the click that pressed the website calibration button. First wait
-  # until the left mouse button is released, then accept a fresh Minecraft click.
-  $state = [JoyPaintWin32]::GetAsyncKeyState(1)
-  if ($script:Armed -and $script:AwaitMouseRelease) {
-    if (($state -band 0x8000) -eq 0) { $script:AwaitMouseRelease = $false }
-    return
-  }
-  # The low bit catches quick clicks between the browser's polling requests.
-  $pressed = (($state -band 0x8000) -ne 0) -or (($state -band 1) -ne 0)
-  if ($script:Armed -and $pressed) {
-    $p = New-Object JoyPaintWin32+POINT
-    [void][JoyPaintWin32]::GetCursorPos([ref]$p)
+  # Mouse input is captured continuously on a dedicated background thread,
+  # not only when the browser happens to poll /last.
+  $p = New-Object JoyPaintWin32+POINT
+  if ([JoyPaintWin32]::TryTakeClick([ref]$p)) {
     $script:LastClick = @{ x=$p.X; y=$p.Y; label=$script:Label }
-    $script:Armed = $false
   }
-}
+
 Write-Host "Joy of Painting helper running at http://127.0.0.1:8766"
 Write-Host "Only requests from the official Joy of Painting page are accepted."
 Write-Host "Keep this window open. Press Ctrl+C to stop."
@@ -167,9 +199,9 @@ try {
         if ($body.Length -gt 20000000) { Send-Json $Context 413 @{error="Painting plan is too large. Use a smaller canvas."}; continue }
         $data=@{}; if ($body) { $data=ConvertFrom-Json $body }
         if ($Path -eq "/arm") {
-          $script:Label=[string]$data.label; $script:Armed=$true; $script:AwaitMouseRelease=$true; $script:LastClick=$null
-          # Drain any stale click edge from the website button itself.
-          [void][JoyPaintWin32]::GetAsyncKeyState(1)
+          $script:Label=[string]$data.label; $script:LastClick=$null
+          # Ignore the calibration-button press, then capture the next physical click anywhere.
+          [JoyPaintWin32]::ArmCapture()
           Send-Json $Context 200 @{ok=$true}; continue
         }
         if ($Path -eq "/prepare") {
@@ -228,7 +260,7 @@ try {
           }
           Send-Json $Context 200 @{ok=$true}; continue
         }
-        if ($Path -eq "/stop") { $script:Armed=$false; Send-Json $Context 200 @{ok=$true}; continue }
+        if ($Path -eq "/stop") { [JoyPaintWin32]::CancelCapture(); Send-Json $Context 200 @{ok=$true}; continue }
       }
       Send-Json $Context 404 @{error="Not found"}
     } catch {
