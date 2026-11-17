@@ -2,15 +2,13 @@
 # Uses built-in Windows PowerShell/.NET and Win32 APIs; no Python or EXE.
 $ErrorActionPreference = "Stop"
 $Origin = "https://joy-of-painting-guide.onrender.com"
-$Listener = [System.Net.HttpListener]::new()
-$Listener.Prefixes.Add("http://127.0.0.1:8766/")
-$Listener.Start()
 Add-Type @"
 using System;
 using System.Runtime.InteropServices;
 public static class JoyPaintWin32 {
   [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X; public int Y; }
   [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);
+  [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
   [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int vKey);
   [StructLayout(LayoutKind.Sequential)] public struct MOUSEINPUT {
     public int dx; public int dy; public uint mouseData; public uint dwFlags; public uint time; public UIntPtr dwExtraInfo;
@@ -67,6 +65,11 @@ public static class JoyPaintWin32 {
   }
 }
 "@
+# Keep captured cursor coordinates in the same physical-pixel space used by SendInput.
+[void][JoyPaintWin32]::SetProcessDPIAware()
+$Listener = [System.Net.HttpListener]::new()
+$Listener.Prefixes.Add("http://127.0.0.1:8766/")
+$Listener.Start()
 $script:Armed = $false
 $script:Label = "target"
 $script:PreviousLeft = $false
@@ -125,7 +128,7 @@ function Get-Click {
     return
   }
   # The low bit catches quick clicks between the browser's polling requests.
-  $pressed = ($state -band 1) -ne 0
+  $pressed = (($state -band 0x8000) -ne 0) -or (($state -band 1) -ne 0)
   if ($script:Armed -and $pressed) {
     $p = New-Object JoyPaintWin32+POINT
     [void][JoyPaintWin32]::GetCursorPos([ref]$p)
