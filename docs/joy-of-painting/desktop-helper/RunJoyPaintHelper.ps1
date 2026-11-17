@@ -20,6 +20,8 @@ public static class JoyPaintWin32 {
   }
   [DllImport("user32.dll", SetLastError=true)] public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
   [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
   [DllImport("user32.dll")] public static extern int GetSystemMetrics(int nIndex);
 }
 "@
@@ -28,6 +30,26 @@ $script:Label = "target"
 $script:PreviousLeft = $false
 $script:AwaitMouseRelease = $false
 $script:LastClick = $null
+$script:MinecraftHwnd = [IntPtr]::Zero
+function Focus-Minecraft {
+  if ($script:MinecraftHwnd -ne [IntPtr]::Zero) { return $true }
+  $candidates = @("javaw", "Minecraft.Windows", "Minecraft")
+  foreach ($name in $candidates) {
+    foreach ($proc in [Diagnostics.Process]::GetProcessesByName($name)) {
+      try {
+        $proc.Refresh()
+        if ($proc.MainWindowHandle -ne [IntPtr]::Zero) {
+          $script:MinecraftHwnd = $proc.MainWindowHandle
+          [void][JoyPaintWin32]::ShowWindow($script:MinecraftHwnd, 9)
+          [void][JoyPaintWin32]::SetForegroundWindow($script:MinecraftHwnd)
+          Start-Sleep -Milliseconds 250
+          return $true
+        }
+      } catch {}
+    }
+  }
+  return $false
+}
 function Send-Json($Context, [int]$Status, $Data) {
   # A 204 preflight response must not contain a body. For all other
   # responses, set the exact byte length before writing to HttpListener.
@@ -116,6 +138,10 @@ try {
           if ($x -lt 0 -or $y -lt 0 -or $x -ge $w -or $y -ge $h) { Send-Json $Context 400 @{error="Coordinates outside screen"}; continue }
           $p=New-Object JoyPaintWin32+POINT; [void][JoyPaintWin32]::GetCursorPos([ref]$p)
           if ($p.X -le 1 -and $p.Y -le 1) { Send-Json $Context 403 @{error="Emergency stop is active"}; continue }
+          if (-not (Focus-Minecraft)) {
+            Send-Json $Context 409 @{error="Minecraft was not found. Open Minecraft and its canvas, then try again."}; continue
+          }
+          [void][JoyPaintWin32]::SetForegroundWindow($script:MinecraftHwnd)
           [void][JoyPaintWin32]::SetCursorPos($x,$y)
           Start-Sleep -Milliseconds 35
           $inputs = New-Object 'JoyPaintWin32+INPUT[]' 2
