@@ -33,6 +33,37 @@ public static class JoyPaintWin32 {
   [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
   [DllImport("user32.dll")] public static extern bool AllowSetForegroundWindow(int dwProcessId);
   [DllImport("user32.dll")] public static extern int GetSystemMetrics(int nIndex);
+  public static bool ClickAt(IntPtr hwnd, int x, int y, int screenW, int screenH) {
+    if (GetForegroundWindow() != hwnd) {
+      IntPtr foreground = GetForegroundWindow();
+      uint foregroundPid, targetPid;
+      uint foregroundThread = GetWindowThreadProcessId(foreground, out foregroundPid);
+      uint targetThread = GetWindowThreadProcessId(hwnd, out targetPid);
+      uint currentThread = GetCurrentThreadId();
+      AllowSetForegroundWindow(-1);
+      bool attachedForeground = foregroundThread != 0 && AttachThreadInput(currentThread, foregroundThread, true);
+      bool attachedTarget = targetThread != 0 && AttachThreadInput(currentThread, targetThread, true);
+      try {
+        ShowWindow(hwnd, 9);
+        BringWindowToTop(hwnd);
+        SetForegroundWindow(hwnd);
+        SetActiveWindow(hwnd);
+        SetFocus(hwnd);
+      } finally {
+        if (attachedTarget) AttachThreadInput(currentThread, targetThread, false);
+        if (attachedForeground) AttachThreadInput(currentThread, foregroundThread, false);
+      }
+      System.Threading.Thread.Sleep(120);
+      if (GetForegroundWindow() != hwnd) return false;
+    }
+    INPUT[] inputs = new INPUT[3];
+    int ax = (int)Math.Round(Math.Max(0, Math.Min(screenW - 1, x)) * 65535.0 / Math.Max(1, screenW - 1));
+    int ay = (int)Math.Round(Math.Max(0, Math.Min(screenH - 1, y)) * 65535.0 / Math.Max(1, screenH - 1));
+    inputs[0].type = 0; inputs[0].mi.dx = ax; inputs[0].mi.dy = ay; inputs[0].mi.dwFlags = 0x8001;
+    inputs[1].type = 0; inputs[1].mi.dwFlags = 0x0002;
+    inputs[2].type = 0; inputs[2].mi.dwFlags = 0x0004;
+    return SendInput(3, inputs, Marshal.SizeOf(typeof(INPUT))) == 3;
+  }
 }
 "@
 $script:Armed = $false
@@ -146,21 +177,10 @@ try {
           if (-not (Find-MinecraftWindow)) {
             Send-Json $Context 409 @{error="Minecraft Java window was not found. Open the game and its painting screen, then try again."}; continue
           }
-          # Send mouse messages directly to Minecraft's client area. This avoids
-          # stealing focus, moving the real cursor, or repeatedly maximizing the game.
-          $point = New-Object JoyPaintWin32+POINT
-          $point.X = $x; $point.Y = $y
-          if (-not [JoyPaintWin32]::ScreenToClient($script:MinecraftHwnd, [ref]$point)) {
-            Send-Json $Context 500 @{error="Could not map the canvas position into the Minecraft window."}; continue
-          }
-          $packed = (($point.Y -band 0xffff) -shl 16) -bor ($point.X -band 0xffff)
-          $lParam = [IntPtr]::new([long]$packed)
-          $ok1 = [JoyPaintWin32]::PostMessage($script:MinecraftHwnd, 0x0200, [IntPtr]::Zero, $lParam)
-          $ok2 = [JoyPaintWin32]::PostMessage($script:MinecraftHwnd, 0x0201, [IntPtr]::new(1), $lParam)
-          Start-Sleep -Milliseconds 25
-          $ok3 = [JoyPaintWin32]::PostMessage($script:MinecraftHwnd, 0x0202, [IntPtr]::Zero, $lParam)
-          if (-not ($ok1 -and $ok2 -and $ok3)) {
-            Send-Json $Context 500 @{error="Minecraft did not accept the click message."}; continue
+          # Send genuine Windows mouse input. Minecraft Java reads real mouse input;
+          # posted window messages can be ignored by its GLFW/LWJGL input layer.
+          if (-not [JoyPaintWin32]::ClickAt($script:MinecraftHwnd, $x, $y, $w, $h)) {
+            Send-Json $Context 409 @{error="Could not focus Minecraft. Keep the game open and try Start painting again."}; continue
           }
           Send-Json $Context 200 @{ok=$true}; continue
         }
