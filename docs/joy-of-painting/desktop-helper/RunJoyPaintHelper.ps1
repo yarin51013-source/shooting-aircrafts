@@ -12,7 +12,13 @@ public static class JoyPaintWin32 {
   [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X; public int Y; }
   [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);
   [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int vKey);
-  [DllImport("user32.dll")] public static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra);
+  [StructLayout(LayoutKind.Sequential)] public struct MOUSEINPUT {
+    public int dx; public int dy; public uint mouseData; public uint dwFlags; public uint time; public UIntPtr dwExtraInfo;
+  }
+  [StructLayout(LayoutKind.Sequential)] public struct INPUT {
+    public uint type; public MOUSEINPUT mi;
+  }
+  [DllImport("user32.dll", SetLastError=true)] public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
   [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
   [DllImport("user32.dll")] public static extern int GetSystemMetrics(int nIndex);
 }
@@ -111,8 +117,18 @@ try {
           $p=New-Object JoyPaintWin32+POINT; [void][JoyPaintWin32]::GetCursorPos([ref]$p)
           if ($p.X -le 1 -and $p.Y -le 1) { Send-Json $Context 403 @{error="Emergency stop is active"}; continue }
           [void][JoyPaintWin32]::SetCursorPos($x,$y)
-          [JoyPaintWin32]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
-          [JoyPaintWin32]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+          Start-Sleep -Milliseconds 35
+          $inputs = New-Object 'JoyPaintWin32+INPUT[]' 2
+          $inputs[0].type = 0
+          $inputs[0].mi.dwFlags = 0x0002
+          $inputs[0].mi.dwExtraInfo = [UIntPtr]::Zero
+          $inputs[1].type = 0
+          $inputs[1].mi.dwFlags = 0x0004
+          $inputs[1].mi.dwExtraInfo = [UIntPtr]::Zero
+          $sent = [JoyPaintWin32]::SendInput(2, $inputs, [Runtime.InteropServices.Marshal]::SizeOf([type][JoyPaintWin32+INPUT]))
+          if ($sent -ne 2) {
+            Send-Json $Context 500 @{error="Windows did not accept the mouse click. Click the Minecraft window once, then try again."}; continue
+          }
           Send-Json $Context 200 @{ok=$true}; continue
         }
         if ($Path -eq "/stop") { $script:Armed=$false; Send-Json $Context 200 @{ok=$true}; continue }
