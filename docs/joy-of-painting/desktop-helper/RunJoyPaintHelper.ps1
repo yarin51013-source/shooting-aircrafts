@@ -10,31 +10,49 @@ public static class JoyPaintWin32 {
   [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);
   [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
   [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int vKey);
+  [StructLayout(LayoutKind.Sequential)] private struct MSLLHOOKSTRUCT { public POINT pt; public uint mouseData; public uint flags; public uint time; public UIntPtr dwExtraInfo; }
+  [StructLayout(LayoutKind.Sequential)] private struct MSG { public IntPtr hwnd; public uint message; public UIntPtr wParam; public IntPtr lParam; public uint time; public POINT pt; }
+  private delegate IntPtr HookProc(int code, IntPtr wParam, IntPtr lParam);
+  private static HookProc hookProc = HookCallback;
+  private static IntPtr hookHandle = IntPtr.Zero;
+  private const int WH_MOUSE_LL = 14, WM_LBUTTONDOWN = 0x0201, WM_LBUTTONUP = 0x0202;
   private static volatile bool captureArmed = false;
   private static volatile bool waitForRelease = false;
   private static bool clickReady = false;
   private static POINT capturedPoint;
   private static readonly object captureLock = new object();
+  [DllImport("user32.dll", SetLastError=true)] private static extern IntPtr SetWindowsHookEx(int idHook, HookProc callback, IntPtr module, uint threadId);
+  [DllImport("user32.dll", SetLastError=true)] private static extern bool UnhookWindowsHookEx(IntPtr hook);
+  [DllImport("user32.dll")] private static extern IntPtr CallNextHookEx(IntPtr hook, int code, IntPtr wParam, IntPtr lParam);
+  [DllImport("user32.dll")] private static extern int GetMessage(out MSG msg, IntPtr hwnd, uint min, uint max);
+  [DllImport("user32.dll")] private static extern bool TranslateMessage(ref MSG msg);
+  [DllImport("user32.dll")] private static extern IntPtr DispatchMessage(ref MSG msg);
+  [DllImport("kernel32.dll", CharSet=CharSet.Auto)] private static extern IntPtr GetModuleHandle(string name);
+  private static IntPtr HookCallback(int code, IntPtr wParam, IntPtr lParam) {
+    if (code >= 0 && captureArmed) {
+      int message = wParam.ToInt32();
+      if (message == WM_LBUTTONUP && waitForRelease) {
+        waitForRelease = false;
+      } else if (message == WM_LBUTTONDOWN && !waitForRelease) {
+        MSLLHOOKSTRUCT data = (MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(MSLLHOOKSTRUCT));
+        lock (captureLock) { capturedPoint = data.pt; clickReady = true; }
+        captureArmed = false;
+      }
+    }
+    return CallNextHookEx(hookHandle, code, wParam, lParam);
+  }
   static JoyPaintWin32() {
     System.Threading.Thread watcher = new System.Threading.Thread(() => {
-      while (true) {
-        if (captureArmed) {
-          bool down = (GetAsyncKeyState(1) & 0x8000) != 0;
-          if (waitForRelease) {
-            if (!down) waitForRelease = false;
-          } else if (down) {
-            POINT p;
-            if (GetCursorPos(out p)) {
-              lock (captureLock) { capturedPoint = p; clickReady = true; }
-            }
-            captureArmed = false;
-          }
-        }
-        System.Threading.Thread.Sleep(2);
+      hookHandle = SetWindowsHookEx(WH_MOUSE_LL, hookProc, GetModuleHandle(null), 0);
+      if (hookHandle == IntPtr.Zero) return;
+      MSG msg;
+      while (GetMessage(out msg, IntPtr.Zero, 0, 0) > 0) {
+        TranslateMessage(ref msg); DispatchMessage(ref msg);
       }
+      UnhookWindowsHookEx(hookHandle);
     });
     watcher.IsBackground = true;
-    watcher.Name = "JoyPaint global mouse watcher";
+    watcher.Name = "JoyPaint low-level mouse hook";
     watcher.Start();
   }
   public static void ArmCapture() {
