@@ -57,7 +57,10 @@ public static class JoyPaintWin32 {
   }
   public static void ArmCapture() {
     lock (captureLock) { clickReady = false; }
-    waitForRelease = true;
+    // The browser sends /arm from the calibration button's click event,
+    // which fires after mouse-up. Do not wait for another release or the
+    // user's first Minecraft click would be discarded.
+    waitForRelease = false;
     captureArmed = true;
   }
   public static bool TryTakeClick(out POINT p) {
