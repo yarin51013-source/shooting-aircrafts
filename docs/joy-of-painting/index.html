@@ -157,7 +157,7 @@ function makePixels(){
   $('dimensions').textContent=w+' × '+h+' pixels';
   $('count').textContent=pixels.length.toLocaleString()+' steps';
   $('colorsUsed').textContent=used.size+' of '+slots.length+' palette colors used';
-  cursor=0;done.clear();converted=true;updateStep();
+  cursor=0;done.clear();converted=true;drawTileOverlay();updateStep();
   $('download').disabled=false;$('resetProgress').disabled=false;
 }
 function updateTileControls(){const w=+$('w').value,h=+$('h').value,tw=Math.max(1,+$('tileW').value||32),th=Math.max(1,+$('tileH').value||32),cols=Math.ceil(w/tw),rows=Math.ceil(h/th),sel=$('tileSelect'),old=sel.value;sel.innerHTML='';for(let r=0;r<rows;r++)for(let col=0;col<cols;col++){const o=document.createElement('option');o.value=col+','+r;o.textContent='Part '+(r*cols+col+1)+' — column '+(col+1)+', row '+(r+1);sel.append(o)}if([...sel.options].some(o=>o.value===old))sel.value=old;$('tileInfo').textContent=cols+' × '+rows+' = '+(cols*rows)+' Minecraft canvases';drawTileOverlay()}
