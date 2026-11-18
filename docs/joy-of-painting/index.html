@@ -72,28 +72,10 @@ function makePixels(){
   if(!source)return;
   refreshLabPalette();
   const w=+$('w').value,h=+$('h').value;
-  // Prepare the source at its own detail level before reducing it to the
-  // chosen canvas size. This keeps small faces, outlines and thin features
-  // from being blurred away during the first resize.
-  const sourceScale=Math.min(1,1600/Math.max(source.width,source.height));
-  const sw=Math.max(1,Math.round(source.width*sourceScale)),sh=Math.max(1,Math.round(source.height*sourceScale));
-  const prepared=document.createElement('canvas');prepared.width=sw;prepared.height=sh;
-  const prep=prepared.getContext('2d',{willReadFrequently:true});
-  prep.imageSmoothingEnabled=true;prep.imageSmoothingQuality='high';prep.drawImage(source,0,0,sw,sh);
+  // Resize once with the browser's high-quality resampler. Sharpening is
+  // applied after reduction below, at the actual output resolution.
+  const sw=source.width,sh=source.height,prepared=source;
   const clamp=v=>Math.max(0,Math.min(255,v));
-  const detail=+$('sharp').value/100;
-  if(detail>0.02){
-    const im=prep.getImageData(0,0,sw,sh),srcData=im.data,copy=new Uint8ClampedArray(srcData);
-    const amount=detail*0.9;
-    for(let y=1;y<sh-1;y++)for(let x=1;x<sw-1;x++){
-      const k=(y*sw+x)*4;
-      for(let ch=0;ch<3;ch++){
-        const blur=(copy[k-4]+copy[k+4]+copy[k-sw*4]+copy[k+sw*4]+copy[k-sw*4-4]+copy[k-sw*4+4]+copy[k+sw*4-4]+copy[k+sw*4+4])/8;
-        srcData[k+ch]=clamp(copy[k+ch]+(copy[k+ch]-blur)*amount);
-      }
-    }
-    prep.putImageData(im,0,0);
-  }
   const temp=document.createElement('canvas');temp.width=w;temp.height=h;
   const ctx=temp.getContext('2d',{willReadFrequently:true});
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
@@ -108,18 +90,20 @@ function makePixels(){
   const raw=ctx.getImageData(0,0,w,h).data;
   const original=new Float32Array(raw.length);
   for(let i=0;i<raw.length;i++)original[i]=raw[i];
-  const sharp=+$('sharp').value/100*1.35;
+  const sharp=+$('sharp').value/100*1.65;
   const contrast=1+(+$('contrast').value)/100;
   const saturation=1+(+$('saturation').value)/100;
   if(sharp>0){
     const base=new Float32Array(original);
+    // Edge-aware unsharp mask sharpens outlines while avoiding noise in flat areas.
     for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
       const k=(y*w+x)*4;
       for(let ch=0;ch<3;ch++){
-        let sum=0;
-        for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++)sum+=base[((y+oy)*w+x+ox)*4+ch];
-        const blur=sum/9;
-        original[k+ch]=clamp(base[k+ch]+(base[k+ch]-blur)*sharp);
+        const blur=(base[k-4]+base[k+4]+base[k-w*4]+base[k+w*4])*0.2+
+          (base[k-w*4-4]+base[k-w*4+4]+base[k+w*4-4]+base[k+w*4+4])*0.05;
+        const diff=base[k+ch]-blur,threshold=5;
+        const enhanced=Math.abs(diff)>threshold?Math.sign(diff)*(Math.abs(diff)-threshold):0;
+        original[k+ch]=clamp(base[k+ch]+enhanced*sharp);
       }
     }
   }
